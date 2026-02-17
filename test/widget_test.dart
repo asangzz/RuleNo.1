@@ -7,8 +7,11 @@ void main() {
     await tester.pumpWidget(const RuleOneApp());
 
     // Verify that the title is present.
-    expect(find.text('Rule No. 1'), findsOneWidget);
-    expect(find.text('Wonderful businesses at a margin of safety.'), findsOneWidget);
-    expect(find.text('No businesses tracked yet.'), findsOneWidget);
+    expect(find.text('Wonderful\nBusinesses'), findsOneWidget);
+    expect(find.textContaining('Tracking'), findsOneWidget);
+
+    // Verify that mock businesses are present
+    expect(find.text('AAPL'), findsOneWidget);
+    expect(find.text('NVDA'), findsOneWidget);
   });
 }
