@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/business.dart';
-import '../services/api_service.dart';
+import '../services/business_repository.dart';
+import '../services/mock_business_repository.dart';
+import '../services/ai_service.dart';
 import '../widgets/business_card.dart';
+import 'add_business_screen.dart';
+import 'business_detail_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -11,18 +15,43 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  final ApiService _apiService = ApiService();
+  // Use Mock repository for now. In a real app, this would be FirestoreBusinessRepository
+  final BusinessRepository _repository = MockBusinessRepository();
+  final AiService _aiService = AiService(apiKey: 'YOUR_GEMINI_API_KEY');
   late Future<List<Business>> _watchlistFuture;
 
   @override
   void initState() {
     super.initState();
-    _watchlistFuture = _apiService.getWatchlist();
+    _refreshWatchlist();
+  }
+
+  void _refreshWatchlist() {
+    setState(() {
+      _watchlistFuture = _repository.getWatchlist();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final Business? result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AddBusinessScreen(aiService: _aiService),
+            ),
+          );
+
+          if (result != null) {
+            await _repository.addBusiness(result);
+            _refreshWatchlist();
+          }
+        },
+        backgroundColor: Colors.white,
+        child: const Icon(Icons.add, color: Colors.black),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -81,7 +110,19 @@ class _MainScreenState extends State<MainScreen> {
                             ),
                             const SizedBox(height: 8),
                             TextButton(
-                              onPressed: () {},
+                              onPressed: () async {
+                                final Business? result = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => AddBusinessScreen(aiService: _aiService),
+                                  ),
+                                );
+
+                                if (result != null) {
+                                  await _repository.addBusiness(result);
+                                  _refreshWatchlist();
+                                }
+                              },
                               child: const Text('Add your first business'),
                             ),
                           ],
@@ -93,7 +134,18 @@ class _MainScreenState extends State<MainScreen> {
                       itemCount: watchlist.length,
                       padding: const EdgeInsets.only(bottom: 24),
                       itemBuilder: (context, index) {
-                        return BusinessCard(business: watchlist[index]);
+                        final business = watchlist[index];
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BusinessDetailScreen(business: business),
+                              ),
+                            );
+                          },
+                          child: BusinessCard(business: business),
+                        );
                       },
                     );
                   },
