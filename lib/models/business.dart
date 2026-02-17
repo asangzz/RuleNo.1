@@ -45,4 +45,42 @@ class Business {
   bool get isOnSale => currentPrice <= marginOfSafetyPrice;
 
   double get marginOfSafety => (stickerPrice - currentPrice) / stickerPrice;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'symbol': symbol,
+      'meaningScore': meaningScore,
+      'moatScore': moatScore,
+      'managementScore': managementScore,
+      'stickerPrice': stickerPrice,
+      'marginOfSafetyPrice': marginOfSafetyPrice,
+      'currentPrice': currentPrice,
+      'roic': roic,
+      'equityGrowthRate': equityGrowthRate,
+      'epsGrowthRate': epsGrowthRate,
+      'salesGrowthRate': salesGrowthRate,
+      'cashGrowthRate': cashGrowthRate,
+    };
+  }
+
+  factory Business.fromJson(Map<String, dynamic> json) {
+    return Business(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      symbol: json['symbol'] as String,
+      meaningScore: (json['meaningScore'] as num).toDouble(),
+      moatScore: (json['moatScore'] as num).toDouble(),
+      managementScore: (json['managementScore'] as num).toDouble(),
+      stickerPrice: (json['stickerPrice'] as num).toDouble(),
+      marginOfSafetyPrice: (json['marginOfSafetyPrice'] as num).toDouble(),
+      currentPrice: (json['currentPrice'] as num).toDouble(),
+      roic: (json['roic'] as num).toDouble(),
+      equityGrowthRate: (json['equityGrowthRate'] as num).toDouble(),
+      epsGrowthRate: (json['epsGrowthRate'] as num).toDouble(),
+      salesGrowthRate: (json['salesGrowthRate'] as num).toDouble(),
+      cashGrowthRate: (json['cashGrowthRate'] as num).toDouble(),
+    );
+  }
 }
