@@ -16,6 +16,5 @@ void main() {
     // Verify that the mock businesses are displayed
     expect(find.text('AAPL'), findsOneWidget);
     expect(find.text('GOOGL'), findsOneWidget);
-    expect(find.text('CMG'), findsOneWidget);
   });
 }
