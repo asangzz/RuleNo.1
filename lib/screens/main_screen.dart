@@ -1,28 +1,61 @@
 import 'package:flutter/material.dart';
 import '../models/business.dart';
-import '../services/api_service.dart';
+import '../services/business_repository.dart';
+import '../services/ai_service.dart';
 import '../widgets/business_card.dart';
+import 'add_business_screen.dart';
+import 'business_detail_screen.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final BusinessRepository repository;
+  final AiService aiService;
+
+  const MainScreen({
+    super.key,
+    required this.repository,
+    required this.aiService,
+  });
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  final ApiService _apiService = ApiService();
   late Future<List<Business>> _watchlistFuture;
 
   @override
   void initState() {
     super.initState();
-    _watchlistFuture = _apiService.getWatchlist();
+    _refreshWatchlist();
+  }
+
+  void _refreshWatchlist() {
+    setState(() {
+      _watchlistFuture = widget.repository.getWatchlist();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final Business? newBusiness = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AddBusinessScreen(aiService: widget.aiService),
+            ),
+          );
+
+          if (newBusiness != null) {
+            await widget.repository.addToWatchlist(newBusiness);
+            _refreshWatchlist();
+          }
+        },
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        child: const Icon(Icons.add),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -79,11 +112,6 @@ class _MainScreenState extends State<MainScreen> {
                                 fontSize: 16,
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            TextButton(
-                              onPressed: () {},
-                              child: const Text('Add your first business'),
-                            ),
                           ],
                         ),
                       );
@@ -93,7 +121,18 @@ class _MainScreenState extends State<MainScreen> {
                       itemCount: watchlist.length,
                       padding: const EdgeInsets.only(bottom: 24),
                       itemBuilder: (context, index) {
-                        return BusinessCard(business: watchlist[index]);
+                        final business = watchlist[index];
+                        return BusinessCard(
+                          business: business,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BusinessDetailScreen(business: business),
+                              ),
+                            );
+                          },
+                        );
                       },
                     );
                   },
