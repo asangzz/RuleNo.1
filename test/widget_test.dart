@@ -9,6 +9,13 @@ void main() {
     // Verify that the title is present.
     expect(find.text('Rule No. 1'), findsOneWidget);
     expect(find.text('Wonderful businesses at a margin of safety.'), findsOneWidget);
-    expect(find.text('No businesses tracked yet.'), findsOneWidget);
+
+    // Wait for the mock data to load
+    await tester.pumpAndSettle();
+
+    // Verify that the mock businesses are displayed
+    expect(find.text('AAPL'), findsOneWidget);
+    expect(find.text('GOOGL'), findsOneWidget);
+    expect(find.text('CMG'), findsOneWidget);
   });
 }
