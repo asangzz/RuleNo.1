@@ -88,6 +88,51 @@ export function calculatePaybackTime(
   return years;
 }
 
+export interface PaybackTimeYear {
+  year: number;
+  eps: number;
+  accumulatedEarnings: number;
+}
+
+export const PAYBACK_TIME_LIMIT = 20;
+
+/**
+ * Calculates Payback Time with a yearly breakdown.
+ *
+ * @param currentPrice Current stock price
+ * @param currentEPS Current Earnings Per Share
+ * @param growthRate Estimated annual growth rate (decimal)
+ * @returns Array of yearly data
+ */
+export function calculatePaybackTimeBreakdown(
+  currentPrice: number,
+  currentEPS: number,
+  growthRate: number
+): PaybackTimeYear[] {
+  const breakdown: PaybackTimeYear[] = [];
+  let accumulatedEarnings = 0;
+  let yearlyEPS = currentEPS;
+  let years = 0;
+
+  // Ensure we don't loop infinitely if growth is negative or zero
+  const maxYears = PAYBACK_TIME_LIMIT;
+
+  while (accumulatedEarnings < currentPrice && years < maxYears) {
+    years++;
+    // If growth rate is very negative, yearlyEPS could eventually become negligible
+    // but we still want to track it up to maxYears
+    yearlyEPS *= (1 + growthRate);
+    accumulatedEarnings += yearlyEPS;
+    breakdown.push({
+      year: years,
+      eps: yearlyEPS,
+      accumulatedEarnings
+    });
+  }
+
+  return breakdown;
+}
+
 /**
  * Helper to determine if a business is "Wonderful" based on Rule No. 1 criteria.
  * This is a simplified version; real analysis involves Moat and Management.
