@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/business.dart';
-import '../services/api_service.dart';
+import '../services/business_repository.dart';
 import '../widgets/business_card.dart';
+import 'add_business_screen.dart';
+import 'business_details_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -11,13 +13,19 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  final ApiService _apiService = ApiService();
+  final BusinessRepository _repository = MockBusinessRepository();
   late Future<List<Business>> _watchlistFuture;
 
   @override
   void initState() {
     super.initState();
-    _watchlistFuture = _apiService.getWatchlist();
+    _refreshWatchlist();
+  }
+
+  void _refreshWatchlist() {
+    setState(() {
+      _watchlistFuture = _repository.getWatchlist();
+    });
   }
 
   @override
@@ -81,7 +89,7 @@ class _MainScreenState extends State<MainScreen> {
                             ),
                             const SizedBox(height: 8),
                             TextButton(
-                              onPressed: () {},
+                              onPressed: _navigateToAddBusiness,
                               child: const Text('Add your first business'),
                             ),
                           ],
@@ -93,7 +101,11 @@ class _MainScreenState extends State<MainScreen> {
                       itemCount: watchlist.length,
                       padding: const EdgeInsets.only(bottom: 24),
                       itemBuilder: (context, index) {
-                        return BusinessCard(business: watchlist[index]);
+                        final business = watchlist[index];
+                        return GestureDetector(
+                          onTap: () => _navigateToDetails(business),
+                          child: BusinessCard(business: business),
+                        );
                       },
                     );
                   },
@@ -103,6 +115,35 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _navigateToAddBusiness,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        child: const Icon(Icons.add),
+      ),
     );
+  }
+
+  void _navigateToDetails(Business business) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BusinessDetailsScreen(business: business),
+      ),
+    );
+  }
+
+  Future<void> _navigateToAddBusiness() async {
+    final result = await Navigator.push<Business>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AddBusinessScreen(),
+      ),
+    );
+
+    if (result != null) {
+      await _repository.addToWatchlist(result);
+      _refreshWatchlist();
+    }
   }
 }
