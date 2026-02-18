@@ -17,8 +17,13 @@
 - **AI Business Analysis**: Integrated Gemini 1.5 Pro via Server Actions to provide deep-dives into "Wonderful Business" criteria (Meaning, Moat, Management).
 - **Utility Improvements**: Added `cn` utility for Tailwind class merging and initialized `firebase-admin` for future server-side logic.
 
+- **Payback Time Calculator**:
+    - Enhanced `calculatePaybackTime` logic in `src/lib/rule-one.ts` to support yearly breakdowns and a 20-year limit.
+    - Created a dedicated "Payback Time" tool page with interactive inputs and data visualization of accumulated earnings.
+    - Updated global navigation for easy access.
+
 ### Next Steps:
 - Implement User Authentication with Firebase Auth.
 - Add real-time stock price integration (e.g., via Alpha Vantage or Yahoo Finance API).
-- Create a "Payback Time" calculator tool for detailed financial projections.
 - Implement data visualization for historical EPS and PE growth.
+- Add "Save to Watchlist" functionality directly from the Payback Time calculator.

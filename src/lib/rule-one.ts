@@ -61,6 +61,13 @@ export function estimateFuturePE(growthRate: number, historicalHighPE?: number):
   return growthBasedPE;
 }
 
+export const PAYBACK_TIME_LIMIT = 20;
+
+export interface PaybackTimeResult {
+  years: number;
+  breakdown: { year: number; eps: number; accumulated: number }[];
+}
+
 /**
  * Calculates Payback Time (in years).
  * How long it takes for the company's earnings to equal the current stock price.
@@ -68,24 +75,33 @@ export function estimateFuturePE(growthRate: number, historicalHighPE?: number):
  * @param currentPrice Current stock price
  * @param currentEPS Current Earnings Per Share
  * @param growthRate Estimated annual growth rate (decimal)
- * @returns Payback Time in years
+ * @returns Payback Time result with years and breakdown
  */
 export function calculatePaybackTime(
   currentPrice: number,
   currentEPS: number,
   growthRate: number
-): number {
+): PaybackTimeResult {
+  const breakdown = [];
   let accumulatedEarnings = 0;
   let yearlyEPS = currentEPS;
   let years = 0;
 
-  while (accumulatedEarnings < currentPrice && years < 100) {
+  while (accumulatedEarnings < currentPrice && years < PAYBACK_TIME_LIMIT) {
     years++;
     yearlyEPS *= (1 + growthRate);
     accumulatedEarnings += yearlyEPS;
+    breakdown.push({
+      year: years,
+      eps: yearlyEPS,
+      accumulated: accumulatedEarnings
+    });
   }
 
-  return years;
+  return {
+    years: accumulatedEarnings >= currentPrice ? years : PAYBACK_TIME_LIMIT + 1,
+    breakdown
+  };
 }
 
 /**
