@@ -17,8 +17,14 @@
 - **AI Business Analysis**: Integrated Gemini 1.5 Pro via Server Actions to provide deep-dives into "Wonderful Business" criteria (Meaning, Moat, Management).
 - **Utility Improvements**: Added `cn` utility for Tailwind class merging and initialized `firebase-admin` for future server-side logic.
 
+## [Payback Time Feature] - 2024-05-24
+- **Payback Time Calculator**: Implemented a new tool to calculate how many years it takes for a business to pay back its purchase price through earnings.
+- **Yearly Breakdown**: Added a detailed table showing yearly EPS growth and accumulated earnings.
+- **Visual Progress**: Integrated progress bars to visualize the payback status for each year.
+- **Rule No. 1 Logic Extension**: Added `calculatePaybackTimeBreakdown` to the core library.
+
 ### Next Steps:
 - Implement User Authentication with Firebase Auth.
 - Add real-time stock price integration (e.g., via Alpha Vantage or Yahoo Finance API).
-- Create a "Payback Time" calculator tool for detailed financial projections.
-- Implement data visualization for historical EPS and PE growth.
+- Implement data visualization for historical EPS and PE growth using charts.
+- Enhance the AI Analysis to include Moat and Management scores in the dashboard.
