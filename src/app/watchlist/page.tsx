@@ -10,6 +10,9 @@ import {
   estimateFuturePE
 } from "@/lib/rule-one";
 import { cn } from "@/lib/utils";
+import { fetchStockInfo, fetchHistoricalData } from "./actions";
+import { GrowthGrid } from "@/components/GrowthGrid";
+import { HistoricalData } from "@/lib/stock-service";
 
 interface WatchlistItem {
   id: string;
@@ -27,6 +30,8 @@ export default function WatchlistPage() {
   const [loading, setLoading] = useState(true);
   const [newTicker, setNewTicker] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
+  const [historicalTrends, setHistoricalTrends] = useState<Record<string, HistoricalData[]>>({});
 
   // Form states for adding a new ticker (simplified)
   const [formData, setFormData] = useState({
@@ -36,6 +41,28 @@ export default function WatchlistPage() {
     growthRate: 0.15,
     historicalHighPE: 20
   });
+
+  const handleFetchInfo = async () => {
+    if (!newTicker) return;
+    setIsFetching(true);
+    try {
+      const result = await fetchStockInfo(newTicker);
+      if (result.success && result.data) {
+        setFormData({
+          ...formData,
+          name: result.data.name,
+          currentPrice: result.data.price,
+          eps: result.data.eps,
+        });
+      } else {
+        console.error(result.error);
+      }
+    } catch (error) {
+      console.error("Error fetching info:", error);
+    } finally {
+      setIsFetching(false);
+    }
+  };
 
   const fetchWatchlist = useCallback(async () => {
     if (!user) return;
@@ -48,6 +75,14 @@ export default function WatchlistPage() {
         ...doc.data()
       })) as WatchlistItem[];
       setItems(data);
+
+      // Load trends
+      data.forEach(async (item) => {
+        const res = await fetchHistoricalData(item.ticker);
+        if (res.success && res.data) {
+          setHistoricalTrends(prev => ({ ...prev, [item.ticker]: res.data }));
+        }
+      });
     } catch (error) {
       console.error("Error fetching watchlist:", error);
     } finally {
@@ -112,14 +147,24 @@ export default function WatchlistPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="text-xs font-medium uppercase text-muted-foreground">Ticker</label>
-              <input
-                type="text"
-                value={newTicker}
-                onChange={(e) => setNewTicker(e.target.value)}
-                placeholder="AAPL"
-                className="w-full mt-1 bg-background border border-border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-accent"
-                required
-              />
+              <div className="flex gap-2 mt-1">
+                <input
+                  type="text"
+                  value={newTicker}
+                  onChange={(e) => setNewTicker(e.target.value)}
+                  placeholder="AAPL"
+                  className="flex-1 bg-background border border-border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-accent"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={handleFetchInfo}
+                  disabled={isFetching || !newTicker}
+                  className="px-3 py-2 bg-muted hover:bg-muted/80 rounded-md text-xs font-bold disabled:opacity-50 transition-colors"
+                >
+                  {isFetching ? "..." : "Fetch"}
+                </button>
+              </div>
             </div>
             <div>
               <label className="text-xs font-medium uppercase text-muted-foreground">Company Name</label>
@@ -211,7 +256,7 @@ export default function WatchlistPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 flex-1">
                   <div>
                     <p className="text-xs font-medium uppercase text-muted-foreground">Sticker Price</p>
                     <p className="font-bold">${stickerPrice.toFixed(2)}</p>
@@ -221,6 +266,12 @@ export default function WatchlistPage() {
                     <p className={cn("font-bold", isSale ? "text-green-500" : "text-foreground")}>
                       ${mosPrice.toFixed(2)}
                     </p>
+                  </div>
+                  <div className="hidden lg:block">
+                    <p className="text-xs font-medium uppercase text-muted-foreground">EPS Trend</p>
+                    <div className="mt-1">
+                      <GrowthGrid data={historicalTrends[item.ticker] || []} />
+                    </div>
                   </div>
                   <div className="hidden md:block">
                     <p className="text-xs font-medium uppercase text-muted-foreground">Status</p>
