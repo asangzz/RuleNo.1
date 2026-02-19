@@ -1,10 +1,13 @@
 "use server";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getHistoricalGrowth } from "@/lib/stock-service";
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || "");
 
 export async function analyzeBusiness(ticker: string) {
+  const growthData = await getHistoricalGrowth(ticker.toUpperCase());
+
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     // Return mock data if no API key is provided
     return {
@@ -16,7 +19,8 @@ export async function analyzeBusiness(ticker: string) {
         management: "Experienced leadership with a track record of capital allocation and innovation.",
         isWonderful: true,
         riskScore: 2, // 1-10
-        summary: "A high-quality business with a sustainable competitive advantage and strong financials."
+        summary: "A high-quality business with a sustainable competitive advantage and strong financials.",
+        historicalGrowth: growthData
       }
     };
   }
@@ -27,6 +31,9 @@ export async function analyzeBusiness(ticker: string) {
     const prompt = `
       Analyze the following company ticker based on Phil Town's "Rule No. 1" investment principles: ${ticker}.
 
+      Historical Financial Data:
+      ${JSON.stringify(growthData, null, 2)}
+
       Provide your analysis in JSON format with the following keys:
       - ticker: The stock ticker.
       - meaning: A brief description of whether the business is easy to understand.
@@ -35,6 +42,8 @@ export async function analyzeBusiness(ticker: string) {
       - isWonderful: Boolean indicating if it qualifies as a "Wonderful Business".
       - riskScore: A number from 1 to 10 (1 being lowest risk).
       - summary: A final summary of the business quality.
+
+      Use the historical data provided to validate the "Moat" and "Wonderful" status. Look for 10% or higher consistent growth in EPS, Revenue, and Equity.
 
       Return ONLY the JSON object.
     `;
@@ -50,7 +59,13 @@ export async function analyzeBusiness(ticker: string) {
     if (jsonStart !== -1 && jsonEnd !== -1) {
       const jsonStr = text.substring(jsonStart, jsonEnd + 1);
       const data = JSON.parse(jsonStr);
-      return { success: true, data };
+      return {
+        success: true,
+        data: {
+          ...data,
+          historicalGrowth: growthData
+        }
+      };
     } else {
       throw new Error("Could not find JSON in AI response");
     }

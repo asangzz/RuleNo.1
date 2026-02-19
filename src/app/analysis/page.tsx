@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { analyzeBusiness } from "./actions";
+import GrowthGrid from "@/components/GrowthGrid";
+import { GrowthData } from "@/lib/stock-service";
 
 interface AnalysisResult {
   ticker: string;
@@ -11,6 +13,7 @@ interface AnalysisResult {
   isWonderful: boolean;
   riskScore: number;
   summary: string;
+  historicalGrowth?: GrowthData | null;
 }
 
 export default function AnalysisPage() {
@@ -38,7 +41,7 @@ export default function AnalysisPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8 pb-12">
       <header className="text-center space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">AI Business Deep-Dive</h2>
         <p className="text-muted-foreground">Get a Rule No. 1 analysis powered by Gemini 1.5 Pro.</p>
@@ -70,6 +73,12 @@ export default function AnalysisPage() {
 
       {result && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {result.historicalGrowth && (
+            <section>
+              <GrowthGrid data={result.historicalGrowth} />
+            </section>
+          )}
+
           <div className="grid gap-6 md:grid-cols-2">
             <div className="p-6 bg-card border border-border rounded-2xl">
               <div className="flex justify-between items-start mb-4">
