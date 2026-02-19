@@ -10,6 +10,7 @@ import {
   estimateFuturePE
 } from "@/lib/rule-one";
 import { cn } from "@/lib/utils";
+import { fetchStockInfo } from "./actions";
 
 interface WatchlistItem {
   id: string;
@@ -25,8 +26,10 @@ export default function WatchlistPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchingInfo, setFetchingInfo] = useState(false);
   const [newTicker, setNewTicker] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Form states for adding a new ticker (simplified)
   const [formData, setFormData] = useState({
@@ -36,6 +39,30 @@ export default function WatchlistPage() {
     growthRate: 0.15,
     historicalHighPE: 20
   });
+
+  const handleFetchStockInfo = async () => {
+    if (!newTicker) return;
+    setFetchingInfo(true);
+    setError(null);
+    try {
+      const result = await fetchStockInfo(newTicker);
+      if (result.success && result.data) {
+        setFormData({
+          ...formData,
+          name: result.data.name,
+          currentPrice: result.data.currentPrice,
+          eps: result.data.eps,
+        });
+      } else {
+        setError(result.error || "Failed to fetch stock info");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred");
+      console.error(err);
+    } finally {
+      setFetchingInfo(false);
+    }
+  };
 
   const fetchWatchlist = useCallback(async () => {
     if (!user) return;
@@ -110,16 +137,27 @@ export default function WatchlistPage() {
       {isAdding && (
         <form onSubmit={handleAddItem} className="p-6 bg-card border border-border rounded-xl space-y-4 animate-in fade-in slide-in-from-top-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
+            <div className="flex flex-col">
               <label className="text-xs font-medium uppercase text-muted-foreground">Ticker</label>
-              <input
-                type="text"
-                value={newTicker}
-                onChange={(e) => setNewTicker(e.target.value)}
-                placeholder="AAPL"
-                className="w-full mt-1 bg-background border border-border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-accent"
-                required
-              />
+              <div className="flex gap-2 mt-1">
+                <input
+                  type="text"
+                  value={newTicker}
+                  onChange={(e) => setNewTicker(e.target.value)}
+                  placeholder="AAPL"
+                  className="flex-1 bg-background border border-border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-accent"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={handleFetchStockInfo}
+                  disabled={fetchingInfo || !newTicker}
+                  className="px-3 py-1 bg-secondary text-secondary-foreground rounded-md text-sm font-medium hover:bg-secondary/80 disabled:opacity-50 transition-colors"
+                >
+                  {fetchingInfo ? "..." : "Fetch"}
+                </button>
+              </div>
+              {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
             </div>
             <div>
               <label className="text-xs font-medium uppercase text-muted-foreground">Company Name</label>

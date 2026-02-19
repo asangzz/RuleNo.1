@@ -30,8 +30,13 @@
 - **User-Specific Data**: Migrated Firestore queries to use user-specific collections (`users/{userId}/watchlist`), ensuring data privacy and multi-tenancy.
 - **Navigation Updates**: Added conditional navigation links and sign-out functionality.
 
+## [Stock Data Integration] - 2024-05-25
+- **Real-time Stock Price Integration**: Integrated `yahoo-finance2` to fetch live stock data (price, EPS, company name).
+- **Stock Service**: Created `src/lib/stock-service.ts` as a reusable utility for stock data fetching.
+- **Automated Watchlist Entry**: Added a "Fetch" feature in the Watchlist page to automatically populate stock details by ticker, reducing manual data entry.
+- **Server Actions**: Implemented `fetchStockInfo` server action to handle backend stock data requests.
+
 ### Next Steps:
-- Add real-time stock price integration (e.g., via Alpha Vantage or Yahoo Finance API).
 - Implement data visualization for historical EPS and PE growth.
 - Add "Save to Watchlist" functionality directly from the Payback Time calculator.
 - Implement user profile settings (e.g., preferred currency, target MOS percentage).
