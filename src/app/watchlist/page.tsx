@@ -11,6 +11,8 @@ import {
 } from "@/lib/rule-one";
 import { cn } from "@/lib/utils";
 import { fetchStockInfo } from "./actions";
+import { GrowthGrid } from "@/components/GrowthGrid";
+import { HistoricalData } from "@/lib/stock-service";
 
 interface WatchlistItem {
   id: string;
@@ -20,6 +22,7 @@ interface WatchlistItem {
   eps: number;
   growthRate: number;
   historicalHighPE: number;
+  historicalEPS?: HistoricalData[];
 }
 
 export default function WatchlistPage() {
@@ -32,12 +35,20 @@ export default function WatchlistPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Form states for adding a new ticker (simplified)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    currentPrice: number;
+    eps: number;
+    growthRate: number;
+    historicalHighPE: number;
+    historicalEPS: HistoricalData[];
+  }>({
     name: "",
     currentPrice: 0,
     eps: 0,
     growthRate: 0.15,
-    historicalHighPE: 20
+    historicalHighPE: 20,
+    historicalEPS: []
   });
 
   const handleFetchStockInfo = async () => {
@@ -52,6 +63,7 @@ export default function WatchlistPage() {
           name: result.data.name,
           currentPrice: result.data.currentPrice,
           eps: result.data.eps,
+          historicalEPS: result.data.historicalEPS || [],
         });
       } else {
         setError(result.error || "Failed to fetch stock info");
@@ -101,7 +113,14 @@ export default function WatchlistPage() {
         createdAt: new Date().toISOString()
       });
       setNewTicker("");
-      setFormData({ name: "", currentPrice: 0, eps: 0, growthRate: 0.15, historicalHighPE: 20 });
+      setFormData({
+        name: "",
+        currentPrice: 0,
+        eps: 0,
+        growthRate: 0.15,
+        historicalHighPE: 20,
+        historicalEPS: []
+      });
       setIsAdding(false);
       fetchWatchlist();
     } catch (error) {
@@ -239,17 +258,26 @@ export default function WatchlistPage() {
 
             return (
               <div key={item.id} className="p-6 bg-card border border-border rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-background border border-border rounded-lg flex items-center justify-center font-bold text-accent">
-                    {item.ticker}
+                <div className="flex flex-col md:flex-row md:items-center gap-6 flex-1">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-background border border-border rounded-lg flex items-center justify-center font-bold text-accent">
+                      {item.ticker}
+                    </div>
+                    <div>
+                      <h3 className="font-bold">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground">Price: ${item.currentPrice.toFixed(2)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground">Price: ${item.currentPrice.toFixed(2)}</p>
-                  </div>
+
+                  {item.historicalEPS && item.historicalEPS.length > 0 && (
+                    <div className="flex flex-col gap-1">
+                      <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">EPS Growth</p>
+                      <GrowthGrid data={item.historicalEPS} />
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-8 md:min-w-[300px]">
                   <div>
                     <p className="text-xs font-medium uppercase text-muted-foreground">Sticker Price</p>
                     <p className="font-bold">${stickerPrice.toFixed(2)}</p>

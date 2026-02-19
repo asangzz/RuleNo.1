@@ -11,6 +11,11 @@ export interface StockData {
   currency: string;
 }
 
+export interface HistoricalData {
+  year: number;
+  value: number;
+}
+
 export async function getStockData(ticker: string): Promise<StockData | null> {
   try {
     const quote = await yahooFinance.quote(ticker);
@@ -28,5 +33,31 @@ export async function getStockData(ticker: string): Promise<StockData | null> {
   } catch (error) {
     console.error(`Error fetching stock data for ${ticker}:`, error);
     return null;
+  }
+}
+
+export async function getHistoricalEPS(ticker: string): Promise<HistoricalData[]> {
+  try {
+    const result = await yahooFinance.fundamentalsTimeSeries(ticker, {
+      period1: '2014-01-01',
+      type: 'annual',
+      module: 'all'
+    });
+
+    if (!result || !Array.isArray(result)) return [];
+
+    // Map and filter for dilutedEPS, then sort by year
+    const epsData = (result as unknown as { date: string | Date; dilutedEPS?: number }[])
+      .filter((item) => item.dilutedEPS !== undefined)
+      .map((item) => ({
+        year: new Date(item.date).getFullYear(),
+        value: item.dilutedEPS as number
+      }))
+      .sort((a, b) => a.year - b.year);
+
+    return epsData;
+  } catch (error) {
+    console.error(`Error fetching historical EPS for ${ticker}:`, error);
+    return [];
   }
 }

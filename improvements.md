@@ -36,7 +36,21 @@
 - **Automated Watchlist Entry**: Added a "Fetch" feature in the Watchlist page to automatically populate stock details by ticker, reducing manual data entry.
 - **Server Actions**: Implemented `fetchStockInfo` server action to handle backend stock data requests.
 
+## [Data Visualization & Calculator Enhancements] - 2024-05-26
+- **Historical Data Integration**:
+    - Added `getHistoricalEPS` to `src/lib/stock-service.ts` to fetch 10-year historical earnings data using Yahoo Finance.
+    - Updated `fetchStockInfo` action to include historical data.
+- **GrowthGrid Component**:
+    - Created a minimalist, color-coded heatmap-style grid in `src/components/GrowthGrid.tsx` to visualize historical EPS growth, consistent with the LifeGrid design language.
+    - Integrated `GrowthGrid` into the Watchlist page for better business analysis.
+- **Payback Time Calculator Improvements**:
+    - Added ticker-based auto-population of stock price and EPS.
+    - Implemented "Save to Watchlist" functionality directly from the calculator, allowing users to persist their analysis.
+- **Code Hygiene & Verification**:
+    - Resolved TypeScript `any` type issues in stock service.
+    - Performed visual verification of UI changes using Playwright.
+
 ### Next Steps:
-- Implement data visualization for historical EPS and PE growth.
-- Add "Save to Watchlist" functionality directly from the Payback Time calculator.
+- Implement data visualization for historical PE growth.
 - Implement user profile settings (e.g., preferred currency, target MOS percentage).
+- Add "Management" and "Moat" manual tracking to the Watchlist items.
