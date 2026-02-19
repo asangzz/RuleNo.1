@@ -3,8 +3,20 @@
 import { useState } from "react";
 import { calculatePaybackTime, PAYBACK_TIME_LIMIT } from "@/lib/rule-one";
 import { cn } from "@/lib/utils";
+import { fetchStockInfo } from "@/app/watchlist/actions";
+import { useAuth } from "@/context/AuthContext";
+import { db } from "@/lib/firebase";
+import { collection, addDoc } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 
 export default function PaybackTimePage() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [ticker, setTicker] = useState("");
+  const [fetching, setFetching] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [inputs, setInputs] = useState({
     price: 150,
     eps: 5,
@@ -12,6 +24,50 @@ export default function PaybackTimePage() {
   });
 
   const result = calculatePaybackTime(inputs.price, inputs.eps, inputs.growthRate);
+
+  const handleFetchInfo = async () => {
+    if (!ticker) return;
+    setFetching(true);
+    setError(null);
+    try {
+      const result = await fetchStockInfo(ticker);
+      if (result.success && result.data) {
+        setInputs({
+          ...inputs,
+          price: result.data.currentPrice,
+          eps: result.data.eps,
+        });
+      } else {
+        setError(result.error || "Failed to fetch stock info");
+      }
+    } catch {
+      setError("An error occurred while fetching stock data");
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  const handleSaveToWatchlist = async () => {
+    if (!user || !ticker) return;
+    setSaving(true);
+    try {
+      await addDoc(collection(db, "users", user.uid, "watchlist"), {
+        ticker: ticker.toUpperCase(),
+        name: ticker.toUpperCase(), // Default to ticker if name not available
+        currentPrice: inputs.price,
+        eps: inputs.eps,
+        growthRate: inputs.growthRate,
+        historicalHighPE: inputs.growthRate * 100 * 2, // Default Rule No. 1 estimate
+        createdAt: new Date().toISOString()
+      });
+      router.push("/watchlist");
+    } catch (err) {
+      console.error("Error saving to watchlist:", err);
+      setError("Failed to save to watchlist");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -32,8 +88,32 @@ export default function PaybackTimePage() {
 
       <div className="grid gap-8 md:grid-cols-[1fr,2fr]">
         <section className="space-y-6 p-6 bg-card border border-border rounded-2xl h-fit">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Parameters</h3>
+          <div className="flex justify-between items-center">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Parameters</h3>
+          </div>
+
           <div className="space-y-4">
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Ticker (optional fetch)</label>
+              <div className="flex gap-2 mt-1">
+                <input
+                  type="text"
+                  value={ticker}
+                  onChange={(e) => setTicker(e.target.value)}
+                  placeholder="AAPL"
+                  className="flex-1 bg-background border border-border rounded-md p-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+                <button
+                  onClick={handleFetchInfo}
+                  disabled={fetching || !ticker}
+                  className="px-3 py-1 bg-secondary text-secondary-foreground rounded-md text-xs font-medium hover:bg-secondary/80 disabled:opacity-50"
+                >
+                  {fetching ? "..." : "Fetch"}
+                </button>
+              </div>
+              {error && <p className="text-[10px] text-red-500 mt-1">{error}</p>}
+            </div>
+
             <div>
               <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Current Price ($)</label>
               <input
@@ -65,6 +145,16 @@ export default function PaybackTimePage() {
                 className="w-full mt-1 bg-background border border-border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
               />
             </div>
+
+            {user && (
+              <button
+                onClick={handleSaveToWatchlist}
+                disabled={saving || !ticker}
+                className="w-full mt-4 py-2 bg-accent text-accent-foreground rounded-lg font-bold text-[10px] uppercase tracking-widest hover:opacity-90 disabled:opacity-50 transition-all"
+              >
+                {saving ? "Saving..." : "Save to Watchlist"}
+              </button>
+            )}
           </div>
         </section>
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { getStockData } from "@/lib/stock-service";
+import { getStockData, getHistoricalEPS } from "@/lib/stock-service";
 
 export async function fetchStockInfo(ticker: string) {
   if (!ticker) {
@@ -14,7 +14,15 @@ export async function fetchStockInfo(ticker: string) {
       return { success: false, error: `Could not find data for ticker: ${ticker}` };
     }
 
-    return { success: true, data };
+    const historicalEPS = await getHistoricalEPS(ticker.toUpperCase());
+
+    return {
+      success: true,
+      data: {
+        ...data,
+        historicalEPS
+      }
+    };
   } catch (error) {
     console.error("Error in fetchStockInfo action:", error);
     return { success: false, error: "Failed to fetch stock information" };
