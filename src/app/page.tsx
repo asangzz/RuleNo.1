@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query } from "firebase/firestore";
+import { useAuth } from "@/context/AuthContext";
 import {
   calculateStickerPrice,
   calculateMOSPrice,
@@ -11,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [stats, setStats] = useState({
     wonderful: 0,
     watchlist: 0,
@@ -18,38 +20,42 @@ export default function DashboardPage() {
   });
   const [loading, setLoading] = useState(true);
 
+  const fetchStats = useCallback(async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const q = query(collection(db, "users", user.uid, "watchlist"));
+      const querySnapshot = await getDocs(q);
+      const watchlistCount = querySnapshot.docs.length;
+
+      let wonderfulCount = 0;
+      querySnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const futurePE = estimateFuturePE(data.growthRate, data.historicalHighPE);
+        const stickerPrice = calculateStickerPrice(data.eps, data.growthRate, futurePE);
+        const mosPrice = calculateMOSPrice(stickerPrice);
+        if (data.currentPrice <= mosPrice) {
+          wonderfulCount++;
+        }
+      });
+
+      setStats({
+        wonderful: wonderfulCount,
+        watchlist: watchlistCount,
+        pending: 0 // Placeholder for now
+      });
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const q = query(collection(db, "watchlist"));
-        const querySnapshot = await getDocs(q);
-        const watchlistCount = querySnapshot.docs.length;
-
-        let wonderfulCount = 0;
-        querySnapshot.docs.forEach(doc => {
-          const data = doc.data();
-          const futurePE = estimateFuturePE(data.growthRate, data.historicalHighPE);
-          const stickerPrice = calculateStickerPrice(data.eps, data.growthRate, futurePE);
-          const mosPrice = calculateMOSPrice(stickerPrice);
-          if (data.currentPrice <= mosPrice) {
-            wonderfulCount++;
-          }
-        });
-
-        setStats({
-          wonderful: wonderfulCount,
-          watchlist: watchlistCount,
-          pending: 0 // Placeholder for now
-        });
-      } catch (error) {
-        console.error("Error fetching stats:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchStats();
-  }, []);
+  }, [fetchStats]);
 
   // Mock data for the heatmap (last 12 months of market consistency)
   const heatmapData = Array.from({ length: 52 }, () => Math.random());

@@ -22,8 +22,16 @@
     - Created a dedicated "Payback Time" tool page with interactive inputs and data visualization of accumulated earnings.
     - Updated global navigation for easy access.
 
+## [Authentication & Multi-Tenancy] - 2024-05-24
+- **Firebase Auth Integration**: Implemented full authentication flow using Firebase Auth.
+- **Auth Context**: Created a React Context (`AuthContext`) to manage user state globally.
+- **Protected Routes**: Implemented `ProtectedRoute` component to handle redirection and secure access to the dashboard, watchlist, analysis, and payback-time tools.
+- **Login & Sign Up Pages**: Developed minimalist, dark-themed authentication pages matching the LifeGrid aesthetic.
+- **User-Specific Data**: Migrated Firestore queries to use user-specific collections (`users/{userId}/watchlist`), ensuring data privacy and multi-tenancy.
+- **Navigation Updates**: Added conditional navigation links and sign-out functionality.
+
 ### Next Steps:
-- Implement User Authentication with Firebase Auth.
 - Add real-time stock price integration (e.g., via Alpha Vantage or Yahoo Finance API).
 - Implement data visualization for historical EPS and PE growth.
 - Add "Save to Watchlist" functionality directly from the Payback Time calculator.
+- Implement user profile settings (e.g., preferred currency, target MOS percentage).

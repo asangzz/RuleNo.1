@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, getDocs, query, deleteDoc, doc } from "firebase/firestore";
+import { useAuth } from "@/context/AuthContext";
 import {
   calculateStickerPrice,
   calculateMOSPrice,
@@ -21,6 +22,7 @@ interface WatchlistItem {
 }
 
 export default function WatchlistPage() {
+  const { user } = useAuth();
   const [items, setItems] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTicker, setNewTicker] = useState("");
@@ -35,14 +37,11 @@ export default function WatchlistPage() {
     historicalHighPE: 20
   });
 
-  useEffect(() => {
-    fetchWatchlist();
-  }, []);
-
-  const fetchWatchlist = async () => {
+  const fetchWatchlist = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      const q = query(collection(db, "watchlist"));
+      const q = query(collection(db, "users", user.uid, "watchlist"));
       const querySnapshot = await getDocs(q);
       const data = querySnapshot.docs.map(doc => ({
         id: doc.id,
@@ -54,14 +53,22 @@ export default function WatchlistPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchWatchlist();
+    } else {
+      setLoading(false);
+    }
+  }, [user, fetchWatchlist]);
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTicker) return;
+    if (!newTicker || !user) return;
 
     try {
-      await addDoc(collection(db, "watchlist"), {
+      await addDoc(collection(db, "users", user.uid, "watchlist"), {
         ticker: newTicker.toUpperCase(),
         ...formData,
         createdAt: new Date().toISOString()
@@ -76,8 +83,9 @@ export default function WatchlistPage() {
   };
 
   const removeItem = async (id: string) => {
+    if (!user) return;
     try {
-      await deleteDoc(doc(db, "watchlist", id));
+      await deleteDoc(doc(db, "users", user.uid, "watchlist", id));
       setItems(items.filter(item => item.id !== id));
     } catch (error) {
       console.error("Error removing item:", error);
