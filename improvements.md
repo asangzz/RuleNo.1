@@ -36,7 +36,15 @@
 - **Automated Watchlist Entry**: Added a "Fetch" feature in the Watchlist page to automatically populate stock details by ticker, reducing manual data entry.
 - **Server Actions**: Implemented `fetchStockInfo` server action to handle backend stock data requests.
 
+## [Advanced Analytics & Personalization] - 2024-05-26
+- **Historical Growth Analysis**: Enhanced `src/lib/stock-service.ts` to fetch 10 years of EPS, Revenue, and Equity data.
+- **Growth Visualization**: Created a `GrowthGrid` component to visualize financial trends with color-coded growth/decline indicators, matching the LifeGrid aesthetic.
+- **Improved Watchlist Automation**: `fetchStockInfo` now calculates a robust `historicalHighPE` by averaging historical annual high PEs, reducing manual estimation.
+- **Payback Time Enhancements**: Added a "Fetch" feature and "Save to Watchlist" functionality directly from the Payback Time calculator.
+- **User Settings**: Implemented a settings page for preferred currency and target Margin of Safety (MOS) percentage, stored in Firestore.
+- **Code Quality**: Fixed various TypeScript and linting issues to ensure a clean, type-safe codebase.
+
 ### Next Steps:
-- Implement data visualization for historical EPS and PE growth.
-- Add "Save to Watchlist" functionality directly from the Payback Time calculator.
-- Implement user profile settings (e.g., preferred currency, target MOS percentage).
+- Implement automated growth rate estimation from historical data.
+- Add more "Moat" indicators (e.g., ROIC tracking).
+- Enhance the AI analysis with the newly available historical growth data.

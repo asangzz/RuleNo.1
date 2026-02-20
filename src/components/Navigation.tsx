@@ -43,6 +43,11 @@ const Navigation = () => {
               Payback Time
             </Link>
           </li>
+          <li>
+            <Link href="/settings" className="block p-2 rounded hover:bg-slate-800 transition-colors">
+              Settings
+            </Link>
+          </li>
         </ul>
       </div>
 

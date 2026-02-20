@@ -11,6 +11,8 @@ import {
 } from "@/lib/rule-one";
 import { cn } from "@/lib/utils";
 import { fetchStockInfo } from "./actions";
+import { GrowthGrid } from "@/components/GrowthGrid";
+import { HistoricalData } from "@/lib/stock-service";
 
 interface WatchlistItem {
   id: string;
@@ -30,6 +32,7 @@ export default function WatchlistPage() {
   const [newTicker, setNewTicker] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [historicalData, setHistoricalData] = useState<HistoricalData[]>([]);
 
   // Form states for adding a new ticker (simplified)
   const [formData, setFormData] = useState({
@@ -44,6 +47,7 @@ export default function WatchlistPage() {
     if (!newTicker) return;
     setFetchingInfo(true);
     setError(null);
+    setHistoricalData([]);
     try {
       const result = await fetchStockInfo(newTicker);
       if (result.success && result.data) {
@@ -52,7 +56,11 @@ export default function WatchlistPage() {
           name: result.data.name,
           currentPrice: result.data.currentPrice,
           eps: result.data.eps,
+          historicalHighPE: result.avgHighPE || 20
         });
+        if (result.historical) {
+          setHistoricalData(result.historical);
+        }
       } else {
         setError(result.error || "Failed to fetch stock info");
       }
@@ -102,6 +110,7 @@ export default function WatchlistPage() {
       });
       setNewTicker("");
       setFormData({ name: "", currentPrice: 0, eps: 0, growthRate: 0.15, historicalHighPE: 20 });
+      setHistoricalData([]);
       setIsAdding(false);
       fetchWatchlist();
     } catch (error) {
@@ -215,6 +224,22 @@ export default function WatchlistPage() {
               />
             </div>
           </div>
+
+          {historicalData.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t border-border">
+              <GrowthGrid
+                data={historicalData}
+                title="Historical EPS"
+                dataKey="eps"
+              />
+              <GrowthGrid
+                data={historicalData}
+                title="Historical Equity (BVPS)"
+                dataKey="equity"
+              />
+            </div>
+          )}
+
           <button type="submit" className="w-full py-2 bg-accent text-accent-foreground rounded-lg font-medium">
             Save to Watchlist
           </button>
