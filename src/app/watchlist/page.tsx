@@ -11,6 +11,8 @@ import {
 } from "@/lib/rule-one";
 import { cn } from "@/lib/utils";
 import { fetchStockInfo } from "./actions";
+import GrowthGrid from "@/components/GrowthGrid";
+import { HistoricalData } from "@/lib/stock-service";
 
 interface WatchlistItem {
   id: string;
@@ -20,6 +22,7 @@ interface WatchlistItem {
   eps: number;
   growthRate: number;
   historicalHighPE: number;
+  historicalData?: HistoricalData[];
 }
 
 export default function WatchlistPage() {
@@ -30,6 +33,7 @@ export default function WatchlistPage() {
   const [newTicker, setNewTicker] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [historicalData, setHistoricalData] = useState<HistoricalData[]>([]);
 
   // Form states for adding a new ticker (simplified)
   const [formData, setFormData] = useState({
@@ -52,7 +56,9 @@ export default function WatchlistPage() {
           name: result.data.name,
           currentPrice: result.data.currentPrice,
           eps: result.data.eps,
+          historicalHighPE: result.data.historicalHighPE || 20,
         });
+        setHistoricalData(result.data.historical || []);
       } else {
         setError(result.error || "Failed to fetch stock info");
       }
@@ -98,10 +104,12 @@ export default function WatchlistPage() {
       await addDoc(collection(db, "users", user.uid, "watchlist"), {
         ticker: newTicker.toUpperCase(),
         ...formData,
+        historicalData,
         createdAt: new Date().toISOString()
       });
       setNewTicker("");
       setFormData({ name: "", currentPrice: 0, eps: 0, growthRate: 0.15, historicalHighPE: 20 });
+      setHistoricalData([]);
       setIsAdding(false);
       fetchWatchlist();
     } catch (error) {
@@ -215,6 +223,14 @@ export default function WatchlistPage() {
               />
             </div>
           </div>
+
+          {historicalData.length > 0 && (
+            <div className="pt-4 border-t border-border space-y-4">
+              <GrowthGrid data={historicalData} title="Historical EPS Growth" dataKey="eps" />
+              <GrowthGrid data={historicalData} title="Historical Revenue Growth" dataKey="revenue" />
+            </div>
+          )}
+
           <button type="submit" className="w-full py-2 bg-accent text-accent-foreground rounded-lg font-medium">
             Save to Watchlist
           </button>
@@ -238,7 +254,8 @@ export default function WatchlistPage() {
             const isSale = item.currentPrice <= mosPrice;
 
             return (
-              <div key={item.id} className="p-6 bg-card border border-border rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div key={item.id} className="p-6 bg-card border border-border rounded-xl space-y-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-background border border-border rounded-lg flex items-center justify-center font-bold text-accent">
                     {item.ticker}
@@ -277,6 +294,13 @@ export default function WatchlistPage() {
                 >
                   Remove
                 </button>
+                </div>
+
+                {item.historicalData && item.historicalData.length > 0 && (
+                  <div className="pt-4 border-t border-border/50">
+                    <GrowthGrid data={item.historicalData} title="EPS Growth History" dataKey="eps" />
+                  </div>
+                )}
               </div>
             );
           })}
