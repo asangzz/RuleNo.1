@@ -36,7 +36,21 @@
 - **Automated Watchlist Entry**: Added a "Fetch" feature in the Watchlist page to automatically populate stock details by ticker, reducing manual data entry.
 - **Server Actions**: Implemented `fetchStockInfo` server action to handle backend stock data requests.
 
+## [Historical Data & Enhanced Watchlist] - 2024-05-26
+- **Historical Growth Visualization**:
+    - Created `GrowthGrid` component for color-coded visualization of historical EPS and Revenue.
+    - Integrated historical data fetching into `src/lib/stock-service.ts` using `yahoo-finance2`.
+    - Added growth history heatmaps to Watchlist items and the "Add Ticker" form.
+- **Payback Time Integration**:
+    - Added "Fetch" functionality to the Payback Time tool to auto-populate stock data.
+    - Implemented "Save to Watchlist" directly from the Payback Time calculator.
+- **Improved Automation**:
+    - `fetchStockInfo` now automatically calculates a robust `historicalHighPE` by averaging the last 10 years of data.
+- **Reliability & Hygiene**:
+    - Improved Firebase initialization to be resilient against missing environment variables (e.g., in CI or sandbox).
+    - Refined TypeScript types and removed redundant diagnostic files.
+
 ### Next Steps:
-- Implement data visualization for historical EPS and PE growth.
-- Add "Save to Watchlist" functionality directly from the Payback Time calculator.
 - Implement user profile settings (e.g., preferred currency, target MOS percentage).
+- Add support for multiple "Moat" types and management evaluation checklists.
+- Implement a "Margin of Safety" notification system.

@@ -1,6 +1,6 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getAuth, Auth } from "firebase/auth";
+import { getFirestore, Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,9 +11,26 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+// Only initialize if we have an API key, otherwise export placeholders to prevent crashes
+const isConfigValid = typeof window !== 'undefined' ? !!firebaseConfig.apiKey : true;
+
+let app: FirebaseApp | undefined;
+let auth: Auth;
+let db: Firestore;
+
+try {
+  if (isConfigValid || process.env.NODE_ENV === 'production') {
+    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+  } else {
+    auth = null as unknown as Auth;
+    db = null as unknown as Firestore;
+  }
+} catch (error) {
+  console.error("Firebase initialization error:", error);
+  auth = null as unknown as Auth;
+  db = null as unknown as Firestore;
+}
 
 export { app, auth, db };
