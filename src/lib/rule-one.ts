@@ -36,13 +36,16 @@ export function calculateStickerPrice(
 
 /**
  * Calculates the Margin of Safety (MOS) Price.
- * Rule No. 1: Buy at 50% of the Sticker Price.
+ * Rule No. 1: Buy at a discount to the Sticker Price (default 50% MOS).
+ * A 50% MOS means buying at 50% of the sticker price.
+ * A higher MOS (e.g., 60%) means buying at a larger discount (40% of sticker price).
  *
  * @param stickerPrice The calculated fair value of the stock
+ * @param mosPercentage Optional Margin of Safety percentage as a discount (default 50)
  * @returns The MOS Price
  */
-export function calculateMOSPrice(stickerPrice: number): number {
-  return stickerPrice / 2;
+export function calculateMOSPrice(stickerPrice: number, mosPercentage: number = 50): number {
+  return stickerPrice * (1 - mosPercentage / 100);
 }
 
 /**

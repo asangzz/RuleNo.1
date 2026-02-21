@@ -36,7 +36,21 @@
 - **Automated Watchlist Entry**: Added a "Fetch" feature in the Watchlist page to automatically populate stock details by ticker, reducing manual data entry.
 - **Server Actions**: Implemented `fetchStockInfo` server action to handle backend stock data requests.
 
+## [Tool Enhancements & Visualizations] - 2024-05-26
+- **Payback Time Tool Upgrades**:
+    - Added ticker-based auto-population of stock data using `fetchStockInfo`.
+    - Integrated Sticker Price and MOS Price calculations directly into the tool.
+    - Added "Save to Watchlist" functionality to persist calculations to Firestore.
+- **User Preferences**:
+    - Created a dedicated Settings page to manage preferred currency and target Margin of Safety (MOS).
+    - Updated core Rule No. 1 logic (`calculateMOSPrice`) to respect user-defined MOS percentages.
+    - Synchronized Dashboard and Watchlist metrics with user preferences.
+- **Data Visualization**:
+    - Implemented `GrowthGrid` component for minimalist, LifeGrid-inspired historical data visualization.
+    - Created `WatchlistItemCard` to encapsulate stock details and growth trends in the watchlist.
+    - Enhanced `stock-service.ts` to fetch and process 10-year historical annual EPS data.
+
 ### Next Steps:
-- Implement data visualization for historical EPS and PE growth.
-- Add "Save to Watchlist" functionality directly from the Payback Time calculator.
-- Implement user profile settings (e.g., preferred currency, target MOS percentage).
+- Complete historical data fetching for Revenue and Equity (4M analysis).
+- Implement AI-driven "Management" and "Moat" assessment based on SEC filings.
+- Add multi-currency support for price displays based on user settings.
