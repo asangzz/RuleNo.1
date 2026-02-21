@@ -1,6 +1,6 @@
 "use server";
 
-import { getStockData } from "@/lib/stock-service";
+import { getStockData, getHistoricalGrowth } from "@/lib/stock-service";
 
 export async function fetchStockInfo(ticker: string) {
   if (!ticker) {
@@ -18,5 +18,16 @@ export async function fetchStockInfo(ticker: string) {
   } catch (error) {
     console.error("Error in fetchStockInfo action:", error);
     return { success: false, error: "Failed to fetch stock information" };
+  }
+}
+
+export async function fetchHistoricalGrowth(ticker: string) {
+  if (!ticker) return { success: false, error: "Ticker is required" };
+  try {
+    const data = await getHistoricalGrowth(ticker.toUpperCase());
+    return { success: true, data };
+  } catch (error) {
+    console.error("Error in fetchHistoricalGrowth action:", error);
+    return { success: false, error: "Failed to fetch historical data" };
   }
 }
