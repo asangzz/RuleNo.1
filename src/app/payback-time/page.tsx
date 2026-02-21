@@ -3,8 +3,20 @@
 import { useState } from "react";
 import { calculatePaybackTime, PAYBACK_TIME_LIMIT } from "@/lib/rule-one";
 import { cn } from "@/lib/utils";
+import { fetchStockInfo } from "../watchlist/actions";
+import { useAuth } from "@/context/AuthContext";
+import { db } from "@/lib/firebase";
+import { collection, addDoc } from "firebase/firestore";
+import { HistoricalData } from "@/lib/stock-service";
 
 export default function PaybackTimePage() {
+  const { user } = useAuth();
+  const [ticker, setTicker] = useState("");
+  const [isFetching, setIsFetching] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [stockData, setStockData] = useState<{ name: string; historicalHighPE: number; historicalData?: HistoricalData[] } | null>(null);
+
   const [inputs, setInputs] = useState({
     price: 150,
     eps: 5,
@@ -21,50 +33,140 @@ export default function PaybackTimePage() {
     }));
   };
 
+  const handleFetchTicker = async () => {
+    if (!ticker) return;
+    setIsFetching(true);
+    setSaveStatus(null);
+    try {
+      const res = await fetchStockInfo(ticker);
+      if (res.success && res.data) {
+        setInputs({
+          price: res.data.currentPrice,
+          eps: res.data.eps,
+          growthRate: 0.15, // Keep default growth or use a heuristic
+        });
+        setStockData({
+          name: res.data.name,
+          historicalHighPE: res.data.historicalHighPE,
+          historicalData: res.data.historicalData
+        });
+      } else {
+        setSaveStatus({ type: 'error', message: res.error || "Failed to fetch stock info" });
+      }
+    } catch {
+      setSaveStatus({ type: 'error', message: "An unexpected error occurred" });
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+  const handleSaveToWatchlist = async () => {
+    if (!user || !ticker) return;
+    setIsSaving(true);
+    setSaveStatus(null);
+    try {
+      await addDoc(collection(db, "users", user.uid, "watchlist"), {
+        ticker: ticker.toUpperCase(),
+        name: stockData?.name || ticker.toUpperCase(),
+        currentPrice: inputs.price,
+        eps: inputs.eps,
+        growthRate: inputs.growthRate,
+        historicalHighPE: stockData?.historicalHighPE || 20,
+        historicalData: stockData?.historicalData || [],
+        createdAt: new Date().toISOString()
+      });
+      setSaveStatus({ type: 'success', message: "Added to watchlist!" });
+    } catch (err) {
+      console.error("Error saving to watchlist:", err);
+      setSaveStatus({ type: 'error', message: "Failed to save to watchlist" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <header>
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">Payback Time</h2>
-        <p className="text-muted-foreground">
-          How many years of earnings does it take to get your money back?
-        </p>
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">Payback Time</h2>
+          <p className="text-muted-foreground">
+            How many years of earnings does it take to get your money back?
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Ticker (e.g. AAPL)"
+              value={ticker}
+              onChange={(e) => setTicker(e.target.value.toUpperCase())}
+              className="bg-card border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent w-40"
+            />
+          </div>
+          <button
+            onClick={handleFetchTicker}
+            disabled={isFetching || !ticker}
+            className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg text-sm font-bold hover:bg-secondary/80 disabled:opacity-50 transition-all"
+          >
+            {isFetching ? "..." : "Fetch"}
+          </button>
+        </div>
       </header>
 
+      {saveStatus && (
+        <div className={cn(
+          "p-4 rounded-xl border text-sm font-medium animate-in fade-in slide-in-from-top-2",
+          saveStatus.type === 'success' ? "bg-green-500/10 border-green-500/20 text-green-500" : "bg-red-500/10 border-red-500/20 text-red-500"
+        )}>
+          {saveStatus.message}
+        </div>
+      )}
+
       <div className="grid gap-8 md:grid-cols-[1fr,2fr]">
-        <section className="space-y-6 p-6 bg-card border border-border rounded-2xl h-fit">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Parameters</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Current Price ($)</label>
-              <input
-                type="number"
-                name="price"
-                value={inputs.price}
-                onChange={handleInputChange}
-                className="w-full mt-1 bg-background border border-border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
-              />
+        <section className="space-y-6">
+          <div className="p-6 bg-card border border-border rounded-2xl h-fit space-y-6">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Parameters</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Current Price ($)</label>
+                <input
+                  type="number"
+                  name="price"
+                  value={inputs.price}
+                  onChange={handleInputChange}
+                  className="w-full mt-1 bg-background border border-border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Current EPS ($)</label>
+                <input
+                  type="number"
+                  name="eps"
+                  value={inputs.eps}
+                  onChange={handleInputChange}
+                  className="w-full mt-1 bg-background border border-border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Estimated Growth (decimal)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="growthRate"
+                  value={inputs.growthRate}
+                  onChange={handleInputChange}
+                  className="w-full mt-1 bg-background border border-border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
+                />
+              </div>
             </div>
-            <div>
-              <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Current EPS ($)</label>
-              <input
-                type="number"
-                name="eps"
-                value={inputs.eps}
-                onChange={handleInputChange}
-                className="w-full mt-1 bg-background border border-border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
-              />
-            </div>
-            <div>
-              <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Estimated Growth (decimal)</label>
-              <input
-                type="number"
-                step="0.01"
-                name="growthRate"
-                value={inputs.growthRate}
-                onChange={handleInputChange}
-                className="w-full mt-1 bg-background border border-border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
-              />
-            </div>
+
+            <button
+              onClick={handleSaveToWatchlist}
+              disabled={isSaving || !ticker || !user}
+              className="w-full py-3 bg-accent text-accent-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {isSaving ? "Saving..." : "Save to Watchlist"}
+            </button>
           </div>
         </section>
 

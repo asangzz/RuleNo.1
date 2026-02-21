@@ -39,10 +39,11 @@ export function calculateStickerPrice(
  * Rule No. 1: Buy at 50% of the Sticker Price.
  *
  * @param stickerPrice The calculated fair value of the stock
+ * @param mosPercentage Margin of Safety percentage (default: 50)
  * @returns The MOS Price
  */
-export function calculateMOSPrice(stickerPrice: number): number {
-  return stickerPrice / 2;
+export function calculateMOSPrice(stickerPrice: number, mosPercentage: number = 50): number {
+  return stickerPrice * (mosPercentage / 100);
 }
 
 /**
