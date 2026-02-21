@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, query, deleteDoc, doc } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, deleteDoc, doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import {
   calculateStickerPrice,
@@ -11,6 +11,8 @@ import {
 } from "@/lib/rule-one";
 import { cn } from "@/lib/utils";
 import { fetchStockInfo } from "./actions";
+import { GrowthGrid } from "@/components/GrowthGrid";
+import { HistoricalData } from "@/lib/stock-service";
 
 interface WatchlistItem {
   id: string;
@@ -20,24 +22,34 @@ interface WatchlistItem {
   eps: number;
   growthRate: number;
   historicalHighPE: number;
+  historicalData?: HistoricalData[];
 }
 
 export default function WatchlistPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<WatchlistItem[]>([]);
+  const [userSettings, setUserSettings] = useState({ currency: 'USD', targetMOS: 50 });
   const [loading, setLoading] = useState(true);
   const [fetchingInfo, setFetchingInfo] = useState(false);
   const [newTicker, setNewTicker] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form states for adding a new ticker (simplified)
-  const [formData, setFormData] = useState({
+  // Form states for adding a new ticker
+  const [formData, setFormData] = useState<{
+    name: string;
+    currentPrice: number;
+    eps: number;
+    growthRate: number;
+    historicalHighPE: number;
+    historicalData?: HistoricalData[];
+  }>({
     name: "",
     currentPrice: 0,
     eps: 0,
     growthRate: 0.15,
-    historicalHighPE: 20
+    historicalHighPE: 20,
+    historicalData: []
   });
 
   const handleFetchStockInfo = async () => {
@@ -52,6 +64,8 @@ export default function WatchlistPage() {
           name: result.data.name,
           currentPrice: result.data.currentPrice,
           eps: result.data.eps,
+          historicalHighPE: result.data.historicalHighPE,
+          historicalData: result.data.historicalData
         });
       } else {
         setError(result.error || "Failed to fetch stock info");
@@ -68,6 +82,17 @@ export default function WatchlistPage() {
     if (!user) return;
     setLoading(true);
     try {
+      // Fetch Settings first
+      const settingsRef = doc(db, "users", user.uid, "settings", "profile");
+      const settingsSnap = await getDoc(settingsRef);
+      if (settingsSnap.exists()) {
+        const data = settingsSnap.data();
+        setUserSettings({
+          currency: data.currency || 'USD',
+          targetMOS: data.targetMOS || 50
+        });
+      }
+
       const q = query(collection(db, "users", user.uid, "watchlist"));
       const querySnapshot = await getDocs(q);
       const data = querySnapshot.docs.map(doc => ({
@@ -101,7 +126,7 @@ export default function WatchlistPage() {
         createdAt: new Date().toISOString()
       });
       setNewTicker("");
-      setFormData({ name: "", currentPrice: 0, eps: 0, growthRate: 0.15, historicalHighPE: 20 });
+      setFormData({ name: "", currentPrice: 0, eps: 0, growthRate: 0.15, historicalHighPE: 20, historicalData: [] });
       setIsAdding(false);
       fetchWatchlist();
     } catch (error) {
@@ -215,6 +240,13 @@ export default function WatchlistPage() {
               />
             </div>
           </div>
+
+          {formData.historicalData && formData.historicalData.length > 0 && (
+            <div className="p-4 bg-background/50 rounded-lg border border-border/50">
+              <GrowthGrid data={formData.historicalData} metric="eps" title="Historical EPS Trend" />
+            </div>
+          )}
+
           <button type="submit" className="w-full py-2 bg-accent text-accent-foreground rounded-lg font-medium">
             Save to Watchlist
           </button>
@@ -230,53 +262,66 @@ export default function WatchlistPage() {
           <p className="text-muted-foreground">Your watchlist is empty. Add a ticker to get started.</p>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-6">
           {items.map((item) => {
             const futurePE = estimateFuturePE(item.growthRate, item.historicalHighPE);
             const stickerPrice = calculateStickerPrice(item.eps, item.growthRate, futurePE);
-            const mosPrice = calculateMOSPrice(stickerPrice);
+            const mosPrice = calculateMOSPrice(stickerPrice, userSettings.targetMOS);
             const isSale = item.currentPrice <= mosPrice;
 
             return (
-              <div key={item.id} className="p-6 bg-card border border-border rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-background border border-border rounded-lg flex items-center justify-center font-bold text-accent">
-                    {item.ticker}
+              <div key={item.id} className="p-6 bg-card border border-border rounded-xl space-y-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-background border border-border rounded-lg flex items-center justify-center font-bold text-accent">
+                      {item.ticker}
+                    </div>
+                    <div>
+                      <h3 className="font-bold">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground">Price: ${item.currentPrice.toFixed(2)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground">Price: ${item.currentPrice.toFixed(2)}</p>
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+                    <div>
+                      <p className="text-xs font-medium uppercase text-muted-foreground">Sticker Price</p>
+                      <p className="font-bold">${stickerPrice.toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase text-muted-foreground">MOS Price</p>
+                      <p className={cn("font-bold", isSale ? "text-green-500" : "text-foreground")}>
+                        ${mosPrice.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="hidden md:block">
+                      <p className="text-xs font-medium uppercase text-muted-foreground">Status</p>
+                      <span className={cn(
+                        "text-xs px-2 py-1 rounded-full font-bold uppercase",
+                        isSale ? "bg-green-500/10 text-green-500" : "bg-slate-500/10 text-slate-500"
+                      )}>
+                        {isSale ? "On Sale" : "Wait"}
+                      </span>
+                    </div>
                   </div>
+
+                  <button
+                    onClick={() => removeItem(item.id)}
+                    className="text-muted-foreground hover:text-red-500 transition-colors self-start md:self-center"
+                  >
+                    Remove
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-                  <div>
-                    <p className="text-xs font-medium uppercase text-muted-foreground">Sticker Price</p>
-                    <p className="font-bold">${stickerPrice.toFixed(2)}</p>
+                {item.historicalData && item.historicalData.length > 0 && (
+                  <div className="pt-6 border-t border-border/50">
+                    <GrowthGrid
+                      data={item.historicalData}
+                      metric="eps"
+                      title="Earnings Growth (EPS)"
+                      formatter={(v) => `$${v.toFixed(2)}`}
+                    />
                   </div>
-                  <div>
-                    <p className="text-xs font-medium uppercase text-muted-foreground">MOS Price</p>
-                    <p className={cn("font-bold", isSale ? "text-green-500" : "text-foreground")}>
-                      ${mosPrice.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="hidden md:block">
-                    <p className="text-xs font-medium uppercase text-muted-foreground">Status</p>
-                    <span className={cn(
-                      "text-xs px-2 py-1 rounded-full font-bold uppercase",
-                      isSale ? "bg-green-500/10 text-green-500" : "bg-slate-500/10 text-slate-500"
-                    )}>
-                      {isSale ? "On Sale" : "Wait"}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="text-muted-foreground hover:text-red-500 transition-colors"
-                >
-                  Remove
-                </button>
+                )}
               </div>
             );
           })}
