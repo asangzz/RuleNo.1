@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query } from "firebase/firestore";
+import { collection, getDocs, query, doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import {
   calculateStickerPrice,
   calculateMOSPrice,
-  estimateFuturePE
+  estimateFuturePE,
+  DEFAULT_MOS_PERCENTAGE
 } from "@/lib/rule-one";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,11 @@ export default function DashboardPage() {
       return;
     }
     try {
+      // Fetch user settings for MOS
+      const settingsRef = doc(db, "users", user.uid, "settings", "profile");
+      const settingsSnap = await getDoc(settingsRef);
+      const targetMOS = settingsSnap.exists() ? settingsSnap.data().targetMOS : DEFAULT_MOS_PERCENTAGE;
+
       const q = query(collection(db, "users", user.uid, "watchlist"));
       const querySnapshot = await getDocs(q);
       const watchlistCount = querySnapshot.docs.length;
@@ -35,7 +41,7 @@ export default function DashboardPage() {
         const data = doc.data();
         const futurePE = estimateFuturePE(data.growthRate, data.historicalHighPE);
         const stickerPrice = calculateStickerPrice(data.eps, data.growthRate, futurePE);
-        const mosPrice = calculateMOSPrice(stickerPrice);
+        const mosPrice = calculateMOSPrice(stickerPrice, targetMOS);
         if (data.currentPrice <= mosPrice) {
           wonderfulCount++;
         }

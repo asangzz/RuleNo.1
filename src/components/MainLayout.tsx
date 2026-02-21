@@ -14,9 +14,9 @@ const MainLayout = ({ children }: MainLayoutProps) => {
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen bg-background text-foreground">
+      <div className="flex min-h-screen bg-background text-foreground font-sans antialiased">
         {!isAuthPage && <Navigation />}
-        <main className="flex-1 p-8 overflow-auto">
+        <main className={`flex-1 p-8 overflow-auto transition-all ${!isAuthPage ? 'ml-64' : ''}`}>
           {children}
         </main>
       </div>
