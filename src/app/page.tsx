@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query } from "firebase/firestore";
+import { collection, getDocs, query, doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import {
   calculateStickerPrice,
@@ -30,12 +30,20 @@ export default function DashboardPage() {
       const querySnapshot = await getDocs(q);
       const watchlistCount = querySnapshot.docs.length;
 
+      // Fetch user settings for MOS
+      let targetMOS = 50;
+      const settingsRef = doc(db, "users", user.uid, "settings", "profile");
+      const settingsSnap = await getDoc(settingsRef);
+      if (settingsSnap.exists()) {
+        targetMOS = settingsSnap.data().targetMOS || 50;
+      }
+
       let wonderfulCount = 0;
       querySnapshot.docs.forEach(doc => {
         const data = doc.data();
         const futurePE = estimateFuturePE(data.growthRate, data.historicalHighPE);
         const stickerPrice = calculateStickerPrice(data.eps, data.growthRate, futurePE);
-        const mosPrice = calculateMOSPrice(stickerPrice);
+        const mosPrice = calculateMOSPrice(stickerPrice, targetMOS);
         if (data.currentPrice <= mosPrice) {
           wonderfulCount++;
         }
