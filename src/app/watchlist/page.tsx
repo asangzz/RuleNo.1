@@ -2,43 +2,52 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, query, deleteDoc, doc } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, deleteDoc, doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import {
-  calculateStickerPrice,
-  calculateMOSPrice,
-  estimateFuturePE
+  DEFAULT_GROWTH_RATE,
+  DEFAULT_HIGH_PE,
+  DEFAULT_MOS_PERCENTAGE
 } from "@/lib/rule-one";
-import { cn } from "@/lib/utils";
 import { fetchStockInfo } from "./actions";
+import { StockData } from "@/lib/stock-service";
+import { WatchlistItemCard, WatchlistItemData } from "@/components/WatchlistItemCard";
 
-interface WatchlistItem {
-  id: string;
-  ticker: string;
-  name: string;
-  currentPrice: number;
-  eps: number;
-  growthRate: number;
-  historicalHighPE: number;
+interface UserSettings {
+  mosPercentage: number;
 }
 
 export default function WatchlistPage() {
   const { user } = useAuth();
-  const [items, setItems] = useState<WatchlistItem[]>([]);
+  const [items, setItems] = useState<WatchlistItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchingInfo, setFetchingInfo] = useState(false);
   const [newTicker, setNewTicker] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userSettings, setUserSettings] = useState<UserSettings>({ mosPercentage: DEFAULT_MOS_PERCENTAGE });
 
-  // Form states for adding a new ticker (simplified)
+  // Form states for adding a new ticker
   const [formData, setFormData] = useState({
     name: "",
     currentPrice: 0,
     eps: 0,
-    growthRate: 0.15,
-    historicalHighPE: 20
+    growthRate: DEFAULT_GROWTH_RATE,
+    historicalHighPE: DEFAULT_HIGH_PE
   });
+
+  const loadSettings = useCallback(async () => {
+    if (!user) return;
+    try {
+      const docRef = doc(db, "users", user.uid, "settings", "profile");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setUserSettings(docSnap.data() as UserSettings);
+      }
+    } catch (error) {
+      console.error("Error loading settings:", error);
+    }
+  }, [user]);
 
   const handleFetchStockInfo = async () => {
     if (!newTicker) return;
@@ -47,11 +56,13 @@ export default function WatchlistPage() {
     try {
       const result = await fetchStockInfo(newTicker);
       if (result.success && result.data) {
+        const stockInfo = result.data as StockData & { historicalHighPE?: number };
         setFormData({
           ...formData,
-          name: result.data.name,
-          currentPrice: result.data.currentPrice,
-          eps: result.data.eps,
+          name: stockInfo.name,
+          currentPrice: stockInfo.currentPrice,
+          eps: stockInfo.eps,
+          historicalHighPE: stockInfo.historicalHighPE || DEFAULT_HIGH_PE
         });
       } else {
         setError(result.error || "Failed to fetch stock info");
@@ -73,7 +84,7 @@ export default function WatchlistPage() {
       const data = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      })) as WatchlistItem[];
+      })) as WatchlistItemData[];
       setItems(data);
     } catch (error) {
       console.error("Error fetching watchlist:", error);
@@ -85,10 +96,11 @@ export default function WatchlistPage() {
   useEffect(() => {
     if (user) {
       fetchWatchlist();
+      loadSettings();
     } else {
       setLoading(false);
     }
-  }, [user, fetchWatchlist]);
+  }, [user, fetchWatchlist, loadSettings]);
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,7 +113,13 @@ export default function WatchlistPage() {
         createdAt: new Date().toISOString()
       });
       setNewTicker("");
-      setFormData({ name: "", currentPrice: 0, eps: 0, growthRate: 0.15, historicalHighPE: 20 });
+      setFormData({
+        name: "",
+        currentPrice: 0,
+        eps: 0,
+        growthRate: DEFAULT_GROWTH_RATE,
+        historicalHighPE: DEFAULT_HIGH_PE
+      });
       setIsAdding(false);
       fetchWatchlist();
     } catch (error) {
@@ -128,39 +146,39 @@ export default function WatchlistPage() {
         </div>
         <button
           onClick={() => setIsAdding(!isAdding)}
-          className="px-4 py-2 bg-accent text-accent-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
+          className="px-4 py-2 bg-accent text-accent-foreground rounded-lg font-bold text-xs uppercase tracking-widest hover:opacity-90 transition-opacity"
         >
           {isAdding ? "Cancel" : "Add Ticker"}
         </button>
       </header>
 
       {isAdding && (
-        <form onSubmit={handleAddItem} className="p-6 bg-card border border-border rounded-xl space-y-4 animate-in fade-in slide-in-from-top-4">
+        <form onSubmit={handleAddItem} className="p-6 bg-card border border-border rounded-xl space-y-4 animate-in fade-in slide-in-from-top-4 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="flex flex-col">
-              <label className="text-xs font-medium uppercase text-muted-foreground">Ticker</label>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Ticker</label>
               <div className="flex gap-2 mt-1">
                 <input
                   type="text"
                   value={newTicker}
                   onChange={(e) => setNewTicker(e.target.value)}
                   placeholder="AAPL"
-                  className="flex-1 bg-background border border-border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-accent"
+                  className="flex-1 bg-background border border-border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-accent uppercase"
                   required
                 />
                 <button
                   type="button"
                   onClick={handleFetchStockInfo}
                   disabled={fetchingInfo || !newTicker}
-                  className="px-3 py-1 bg-secondary text-secondary-foreground rounded-md text-sm font-medium hover:bg-secondary/80 disabled:opacity-50 transition-colors"
+                  className="px-3 py-1 bg-secondary text-secondary-foreground rounded-md text-xs font-bold uppercase hover:bg-secondary/80 disabled:opacity-50 transition-colors"
                 >
                   {fetchingInfo ? "..." : "Fetch"}
                 </button>
               </div>
-              {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+              {error && <p className="text-[10px] text-red-500 mt-1 font-medium">{error}</p>}
             </div>
             <div>
-              <label className="text-xs font-medium uppercase text-muted-foreground">Company Name</label>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Company Name</label>
               <input
                 type="text"
                 value={formData.name}
@@ -171,7 +189,7 @@ export default function WatchlistPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium uppercase text-muted-foreground">Current Price</label>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Current Price</label>
               <input
                 type="number"
                 step="0.01"
@@ -182,7 +200,7 @@ export default function WatchlistPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium uppercase text-muted-foreground">EPS (TTM)</label>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">EPS (TTM)</label>
               <input
                 type="number"
                 step="0.01"
@@ -193,7 +211,7 @@ export default function WatchlistPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium uppercase text-muted-foreground">Estimated Growth (decimal)</label>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Estimated Growth (decimal)</label>
               <input
                 type="number"
                 step="0.01"
@@ -204,7 +222,7 @@ export default function WatchlistPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium uppercase text-muted-foreground">Historical High PE</label>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Historical High PE</label>
               <input
                 type="number"
                 step="0.1"
@@ -215,7 +233,7 @@ export default function WatchlistPage() {
               />
             </div>
           </div>
-          <button type="submit" className="w-full py-2 bg-accent text-accent-foreground rounded-lg font-medium">
+          <button type="submit" className="w-full py-2 bg-accent text-accent-foreground rounded-lg font-bold text-xs uppercase tracking-widest hover:opacity-90 transition-opacity">
             Save to Watchlist
           </button>
         </form>
@@ -230,56 +248,15 @@ export default function WatchlistPage() {
           <p className="text-muted-foreground">Your watchlist is empty. Add a ticker to get started.</p>
         </div>
       ) : (
-        <div className="grid gap-4">
-          {items.map((item) => {
-            const futurePE = estimateFuturePE(item.growthRate, item.historicalHighPE);
-            const stickerPrice = calculateStickerPrice(item.eps, item.growthRate, futurePE);
-            const mosPrice = calculateMOSPrice(stickerPrice);
-            const isSale = item.currentPrice <= mosPrice;
-
-            return (
-              <div key={item.id} className="p-6 bg-card border border-border rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-background border border-border rounded-lg flex items-center justify-center font-bold text-accent">
-                    {item.ticker}
-                  </div>
-                  <div>
-                    <h3 className="font-bold">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground">Price: ${item.currentPrice.toFixed(2)}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-                  <div>
-                    <p className="text-xs font-medium uppercase text-muted-foreground">Sticker Price</p>
-                    <p className="font-bold">${stickerPrice.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium uppercase text-muted-foreground">MOS Price</p>
-                    <p className={cn("font-bold", isSale ? "text-green-500" : "text-foreground")}>
-                      ${mosPrice.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="hidden md:block">
-                    <p className="text-xs font-medium uppercase text-muted-foreground">Status</p>
-                    <span className={cn(
-                      "text-xs px-2 py-1 rounded-full font-bold uppercase",
-                      isSale ? "bg-green-500/10 text-green-500" : "bg-slate-500/10 text-slate-500"
-                    )}>
-                      {isSale ? "On Sale" : "Wait"}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="text-muted-foreground hover:text-red-500 transition-colors"
-                >
-                  Remove
-                </button>
-              </div>
-            );
-          })}
+        <div className="grid gap-6">
+          {items.map((item) => (
+            <WatchlistItemCard
+              key={item.id}
+              item={item}
+              onRemove={removeItem}
+              mosPercentage={userSettings.mosPercentage}
+            />
+          ))}
         </div>
       )}
     </div>

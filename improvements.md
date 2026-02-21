@@ -36,7 +36,18 @@
 - **Automated Watchlist Entry**: Added a "Fetch" feature in the Watchlist page to automatically populate stock details by ticker, reducing manual data entry.
 - **Server Actions**: Implemented `fetchStockInfo` server action to handle backend stock data requests.
 
+## [Personalization & Visualization] - 2024-05-26
+- **User Settings**: Implemented a dedicated Settings page (`src/app/settings/page.tsx`) to manage preferred currency and target Margin of Safety (MOS) percentage, persisted in Firestore.
+- **Enhanced Watchlist**:
+    - Integrated `GrowthGrid` component for 10-year EPS and Revenue visualization using a minimalist, heatmap-style grid.
+    - Updated `fetchStockInfo` action to calculate a robust average historical High PE for more accurate Sticker Price calculations.
+    - Refactored watchlist items into a reusable `WatchlistItemCard` component.
+- **Improved Payback Time Tool**:
+    - Added ticker fetch functionality to auto-populate price and EPS data.
+    - Implemented "Save to Watchlist" feature to persist calculations directly from the tool.
+- **Centralized Logic**: Consolidated financial constants and Rule No. 1 defaults in `src/lib/rule-one.ts` for application-wide consistency.
+
 ### Next Steps:
-- Implement data visualization for historical EPS and PE growth.
-- Add "Save to Watchlist" functionality directly from the Payback Time calculator.
-- Implement user profile settings (e.g., preferred currency, target MOS percentage).
+- Implement multi-currency conversion using real-time exchange rates.
+- Add "Management" and "Moat" analysis tools to the AI Business Analysis section.
+- Implement push notifications for "On Sale" stock alerts.
