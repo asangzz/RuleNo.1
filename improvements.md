@@ -36,7 +36,18 @@
 - **Automated Watchlist Entry**: Added a "Fetch" feature in the Watchlist page to automatically populate stock details by ticker, reducing manual data entry.
 - **Server Actions**: Implemented `fetchStockInfo` server action to handle backend stock data requests.
 
+## [User Preferences & Visualization] - 2024-05-26
+- **User Settings**: Implemented a settings page for personalizing target Margin of Safety (MOS) and preferred currency.
+- **Payback Time Enhancements**: Added automated stock info fetching and "Save to Watchlist" functionality to the Payback Time tool.
+- **Historical Growth Visualization**:
+    - Integrated 10-year historical financial data fetching (EPS, Revenue, Equity) via `yahoo-finance2`.
+    - Created `GrowthGrid` component to visualize consistency and trajectory of business growth using a LifeGrid-inspired heatmap.
+- **Architectural Improvements**:
+    - Refactored watchlist to use a dedicated `WatchlistItemCard` component.
+    - Moved historical data fetching to Server Actions to ensure security and compatibility.
+    - Centralized financial defaults (MOS, Growth Rate) in a core library.
+
 ### Next Steps:
-- Implement data visualization for historical EPS and PE growth.
-- Add "Save to Watchlist" functionality directly from the Payback Time calculator.
-- Implement user profile settings (e.g., preferred currency, target MOS percentage).
+- Implement "Wonderful Business" analysis reports summarizing Meaning, Moat, and Management.
+- Add export functionality for watchlist data (PDF/CSV).
+- Integrate a news feed for tracked stocks.
