@@ -34,15 +34,20 @@ export function calculateStickerPrice(
   return futurePrice / 4;
 }
 
+export const DEFAULT_GROWTH_RATE = 0.15;
+export const DEFAULT_HIGH_PE = 15;
+export const DEFAULT_MOS_PERCENTAGE = 50;
+
 /**
  * Calculates the Margin of Safety (MOS) Price.
- * Rule No. 1: Buy at 50% of the Sticker Price.
+ * Rule No. 1: Buy at a discount (default 50%) of the Sticker Price.
  *
  * @param stickerPrice The calculated fair value of the stock
+ * @param mosPercentage The target Margin of Safety percentage (default 50)
  * @returns The MOS Price
  */
-export function calculateMOSPrice(stickerPrice: number): number {
-  return stickerPrice / 2;
+export function calculateMOSPrice(stickerPrice: number, mosPercentage: number = 50): number {
+  return stickerPrice * (1 - mosPercentage / 100);
 }
 
 /**
