@@ -2,15 +2,17 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, query, deleteDoc, doc } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, deleteDoc, doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import {
   calculateStickerPrice,
   calculateMOSPrice,
-  estimateFuturePE
+  estimateFuturePE,
+  DEFAULT_MOS_PERCENTAGE
 } from "@/lib/rule-one";
-import { cn } from "@/lib/utils";
+import { cn, CURRENCY_SYMBOLS } from "@/lib/utils";
 import { fetchStockInfo } from "./actions";
+import { UserSettings } from "@/lib/types";
 
 interface WatchlistItem {
   id: string;
@@ -31,6 +33,11 @@ export default function WatchlistPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [settings, setSettings] = useState<UserSettings>({
+    currency: "USD",
+    targetMOS: DEFAULT_MOS_PERCENTAGE,
+  });
+
   // Form states for adding a new ticker (simplified)
   const [formData, setFormData] = useState({
     name: "",
@@ -39,6 +46,24 @@ export default function WatchlistPage() {
     growthRate: 0.15,
     historicalHighPE: 20
   });
+
+  useEffect(() => {
+    async function loadSettings() {
+      if (!user) return;
+      try {
+        const docRef = doc(db, "users", user.uid, "settings", "profile");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setSettings(docSnap.data() as UserSettings);
+        }
+      } catch (error) {
+        console.error("Error loading settings:", error);
+      }
+    }
+    loadSettings();
+  }, [user]);
+
+  const currencySymbol = CURRENCY_SYMBOLS[settings.currency] || "$";
 
   const handleFetchStockInfo = async () => {
     if (!newTicker) return;
@@ -171,7 +196,7 @@ export default function WatchlistPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium uppercase text-muted-foreground">Current Price</label>
+              <label className="text-xs font-medium uppercase text-muted-foreground">Current Price ({currencySymbol})</label>
               <input
                 type="number"
                 step="0.01"
@@ -234,7 +259,7 @@ export default function WatchlistPage() {
           {items.map((item) => {
             const futurePE = estimateFuturePE(item.growthRate, item.historicalHighPE);
             const stickerPrice = calculateStickerPrice(item.eps, item.growthRate, futurePE);
-            const mosPrice = calculateMOSPrice(stickerPrice);
+            const mosPrice = calculateMOSPrice(stickerPrice, settings.targetMOS);
             const isSale = item.currentPrice <= mosPrice;
 
             return (
@@ -245,19 +270,19 @@ export default function WatchlistPage() {
                   </div>
                   <div>
                     <h3 className="font-bold">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground">Price: ${item.currentPrice.toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground">Price: {currencySymbol}{item.currentPrice.toFixed(2)}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
                   <div>
                     <p className="text-xs font-medium uppercase text-muted-foreground">Sticker Price</p>
-                    <p className="font-bold">${stickerPrice.toFixed(2)}</p>
+                    <p className="font-bold">{currencySymbol}{stickerPrice.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-medium uppercase text-muted-foreground">MOS Price</p>
+                    <p className="text-xs font-medium uppercase text-muted-foreground">MOS Price ({settings.targetMOS}%)</p>
                     <p className={cn("font-bold", isSale ? "text-green-500" : "text-foreground")}>
-                      ${mosPrice.toFixed(2)}
+                      {currencySymbol}{mosPrice.toFixed(2)}
                     </p>
                   </div>
                   <div className="hidden md:block">
