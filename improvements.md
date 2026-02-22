@@ -36,7 +36,23 @@
 - **Automated Watchlist Entry**: Added a "Fetch" feature in the Watchlist page to automatically populate stock details by ticker, reducing manual data entry.
 - **Server Actions**: Implemented `fetchStockInfo` server action to handle backend stock data requests.
 
+## [User Personalization & Tools Enhancement] - 2024-05-26
+- **User Profile Settings**:
+    - Implemented a dedicated Settings page (`src/app/settings/page.tsx`) for personalized investment preferences.
+    - Added support for preferred currency (USD, EUR, GBP, CAD, AUD) and custom target Margin of Safety (MOS) percentage.
+    - Persisted settings to Firestore under `users/{userId}/settings/profile`.
+- **Payback Time Calculator Enhancements**:
+    - Added ticker-based data fetching using `yahoo-finance2` via Server Actions.
+    - Implemented "Save to Watchlist" functionality directly from the calculator.
+    - Integrated user-preferred currency symbols in result displays.
+- **Rule No. 1 Logic Updates**:
+    - Updated `calculateMOSPrice` to respect user-defined MOS percentages.
+    - Centralized financial constants in `src/lib/rule-one.ts`.
+- **Global Currency Support**:
+    - Introduced `CURRENCY_SYMBOLS` utility for consistent currency formatting across the app.
+    - Updated Watchlist and Payback Time pages to use dynamic currency symbols.
+
 ### Next Steps:
-- Implement data visualization for historical EPS and PE growth.
-- Add "Save to Watchlist" functionality directly from the Payback Time calculator.
-- Implement user profile settings (e.g., preferred currency, target MOS percentage).
+- Implement data visualization for historical EPS and PE growth (e.g., GrowthGrid component).
+- Add business moat analysis tools with AI-assisted checklists.
+- Implement a comparison tool for side-by-side analysis of multiple wonderful businesses.

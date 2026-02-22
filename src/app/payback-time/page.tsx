@@ -1,15 +1,50 @@
 "use client";
 
-import { useState } from "react";
-import { calculatePaybackTime, PAYBACK_TIME_LIMIT } from "@/lib/rule-one";
-import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react";
+import { calculatePaybackTime, PAYBACK_TIME_LIMIT, DEFAULT_GROWTH_RATE, DEFAULT_MOS_PERCENTAGE } from "@/lib/rule-one";
+import { cn, CURRENCY_SYMBOLS } from "@/lib/utils";
+import { fetchStockInfo } from "../watchlist/actions";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, doc, getDoc } from "firebase/firestore";
+import { useAuth } from "@/context/AuthContext";
+import { UserSettings } from "@/lib/types";
 
 export default function PaybackTimePage() {
+  const { user } = useAuth();
+  const [ticker, setTicker] = useState("");
+  const [isFetching, setIsFetching] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const [settings, setSettings] = useState<UserSettings>({
+    currency: "USD",
+    targetMOS: DEFAULT_MOS_PERCENTAGE,
+  });
+
   const [inputs, setInputs] = useState({
+    name: "Custom Analysis",
     price: 150,
     eps: 5,
-    growthRate: 0.15,
+    growthRate: DEFAULT_GROWTH_RATE,
   });
+
+  useEffect(() => {
+    async function loadSettings() {
+      if (!user) return;
+      try {
+        const docRef = doc(db, "users", user.uid, "settings", "profile");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setSettings(docSnap.data() as UserSettings);
+        }
+      } catch (error) {
+        console.error("Error loading settings:", error);
+      }
+    }
+    loadSettings();
+  }, [user]);
+
+  const currencySymbol = CURRENCY_SYMBOLS[settings.currency] || "$";
 
   const result = calculatePaybackTime(inputs.price, inputs.eps, inputs.growthRate);
 
@@ -17,17 +52,81 @@ export default function PaybackTimePage() {
     const { name, value } = e.target;
     setInputs((prev) => ({
       ...prev,
-      [name]: parseFloat(value) || 0,
+      [name]: name === "name" ? value : (parseFloat(value) || 0),
     }));
   };
 
+  const handleFetch = async () => {
+    if (!ticker) return;
+    setIsFetching(true);
+    setMessage(null);
+    try {
+      const res = await fetchStockInfo(ticker);
+      if (res.success && res.data) {
+        setInputs({
+          name: res.data.name,
+          price: res.data.currentPrice,
+          eps: res.data.eps,
+          growthRate: inputs.growthRate, // Keep current growth rate or set to default
+        });
+      } else {
+        setMessage({ type: "error", text: res.error || "Failed to fetch stock info" });
+      }
+    } catch {
+      setMessage({ type: "error", text: "An error occurred while fetching" });
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+  const handleSaveToWatchlist = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    setMessage(null);
+    try {
+      await addDoc(collection(db, "users", user.uid, "watchlist"), {
+        ticker: ticker.toUpperCase() || "CUSTOM",
+        name: inputs.name,
+        currentPrice: inputs.price,
+        eps: inputs.eps,
+        growthRate: inputs.growthRate,
+        historicalHighPE: inputs.growthRate * 100 * 2, // Default heuristic
+        createdAt: new Date().toISOString(),
+      });
+      setMessage({ type: "success", text: "Saved to watchlist!" });
+    } catch (error) {
+      console.error("Error saving:", error);
+      setMessage({ type: "error", text: "Failed to save to watchlist" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <header>
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">Payback Time</h2>
-        <p className="text-muted-foreground">
-          How many years of earnings does it take to get your money back?
-        </p>
+    <div className="max-w-4xl mx-auto space-y-8 pb-12">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">Payback Time</h2>
+          <p className="text-muted-foreground">
+            How many years of earnings does it take to get your money back?
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Ticker (e.g. AAPL)"
+            value={ticker}
+            onChange={(e) => setTicker(e.target.value.toUpperCase())}
+            className="bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-accent w-32"
+          />
+          <button
+            onClick={handleFetch}
+            disabled={isFetching || !ticker}
+            className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium hover:bg-secondary/80 disabled:opacity-50"
+          >
+            {isFetching ? "..." : "Fetch"}
+          </button>
+        </div>
       </header>
 
       <div className="grid gap-8 md:grid-cols-[1fr,2fr]">
@@ -35,7 +134,17 @@ export default function PaybackTimePage() {
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Parameters</h3>
           <div className="space-y-4">
             <div>
-              <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Current Price ($)</label>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Company/Analysis Name</label>
+              <input
+                type="text"
+                name="name"
+                value={inputs.name}
+                onChange={handleInputChange}
+                className="w-full mt-1 bg-background border border-border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Current Price ({currencySymbol})</label>
               <input
                 type="number"
                 name="price"
@@ -45,7 +154,7 @@ export default function PaybackTimePage() {
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Current EPS ($)</label>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Current EPS ({currencySymbol})</label>
               <input
                 type="number"
                 name="eps"
@@ -66,6 +175,20 @@ export default function PaybackTimePage() {
               />
             </div>
           </div>
+
+          <button
+            onClick={handleSaveToWatchlist}
+            disabled={isSaving || !user}
+            className="w-full py-2 bg-accent/10 text-accent border border-accent/20 rounded-lg font-bold hover:bg-accent/20 transition-colors disabled:opacity-50"
+          >
+            {isSaving ? "Saving..." : "Save to Watchlist"}
+          </button>
+
+          {message && (
+            <p className={cn("text-xs text-center font-medium", message.type === "success" ? "text-green-500" : "text-red-500")}>
+              {message.text}
+            </p>
+          )}
         </section>
 
         <section className="space-y-6">
@@ -103,9 +226,9 @@ export default function PaybackTimePage() {
                   {result.breakdown.map((row) => (
                     <tr key={row.year} className="hover:bg-accent/5 transition-colors group">
                       <td className="p-4 font-medium text-muted-foreground group-hover:text-foreground">Year {row.year}</td>
-                      <td className="p-4 group-hover:font-medium">${row.eps.toFixed(2)}</td>
+                      <td className="p-4 group-hover:font-medium">{currencySymbol}{row.eps.toFixed(2)}</td>
                       <td className="p-4 font-bold text-accent group-hover:scale-105 transition-transform origin-left">
-                        ${row.accumulated.toFixed(2)}
+                        {currencySymbol}{row.accumulated.toFixed(2)}
                       </td>
                     </tr>
                   ))}
