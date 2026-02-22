@@ -2,15 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, query, deleteDoc, doc } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, deleteDoc, doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
-import {
-  calculateStickerPrice,
-  calculateMOSPrice,
-  estimateFuturePE
-} from "@/lib/rule-one";
-import { cn } from "@/lib/utils";
+import { DEFAULT_MOS_PERCENTAGE } from "@/lib/rule-one";
 import { fetchStockInfo } from "./actions";
+import { WatchlistItemCard } from "@/components/WatchlistItemCard";
 
 interface WatchlistItem {
   id: string;
@@ -25,6 +21,7 @@ interface WatchlistItem {
 export default function WatchlistPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<WatchlistItem[]>([]);
+  const [targetMOS, setTargetMOS] = useState(DEFAULT_MOS_PERCENTAGE);
   const [loading, setLoading] = useState(true);
   const [fetchingInfo, setFetchingInfo] = useState(false);
   const [newTicker, setNewTicker] = useState("");
@@ -68,6 +65,7 @@ export default function WatchlistPage() {
     if (!user) return;
     setLoading(true);
     try {
+      // Fetch Watchlist
       const q = query(collection(db, "users", user.uid, "watchlist"));
       const querySnapshot = await getDocs(q);
       const data = querySnapshot.docs.map(doc => ({
@@ -75,8 +73,15 @@ export default function WatchlistPage() {
         ...doc.data()
       })) as WatchlistItem[];
       setItems(data);
+
+      // Fetch User Settings
+      const settingsRef = doc(db, "users", user.uid, "settings", "profile");
+      const settingsSnap = await getDoc(settingsRef);
+      if (settingsSnap.exists()) {
+        setTargetMOS(settingsSnap.data().targetMOS || DEFAULT_MOS_PERCENTAGE);
+      }
     } catch (error) {
-      console.error("Error fetching watchlist:", error);
+      console.error("Error fetching watchlist or settings:", error);
     } finally {
       setLoading(false);
     }
@@ -231,55 +236,14 @@ export default function WatchlistPage() {
         </div>
       ) : (
         <div className="grid gap-4">
-          {items.map((item) => {
-            const futurePE = estimateFuturePE(item.growthRate, item.historicalHighPE);
-            const stickerPrice = calculateStickerPrice(item.eps, item.growthRate, futurePE);
-            const mosPrice = calculateMOSPrice(stickerPrice);
-            const isSale = item.currentPrice <= mosPrice;
-
-            return (
-              <div key={item.id} className="p-6 bg-card border border-border rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-background border border-border rounded-lg flex items-center justify-center font-bold text-accent">
-                    {item.ticker}
-                  </div>
-                  <div>
-                    <h3 className="font-bold">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground">Price: ${item.currentPrice.toFixed(2)}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-                  <div>
-                    <p className="text-xs font-medium uppercase text-muted-foreground">Sticker Price</p>
-                    <p className="font-bold">${stickerPrice.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium uppercase text-muted-foreground">MOS Price</p>
-                    <p className={cn("font-bold", isSale ? "text-green-500" : "text-foreground")}>
-                      ${mosPrice.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="hidden md:block">
-                    <p className="text-xs font-medium uppercase text-muted-foreground">Status</p>
-                    <span className={cn(
-                      "text-xs px-2 py-1 rounded-full font-bold uppercase",
-                      isSale ? "bg-green-500/10 text-green-500" : "bg-slate-500/10 text-slate-500"
-                    )}>
-                      {isSale ? "On Sale" : "Wait"}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="text-muted-foreground hover:text-red-500 transition-colors"
-                >
-                  Remove
-                </button>
-              </div>
-            );
-          })}
+          {items.map((item) => (
+            <WatchlistItemCard
+              key={item.id}
+              item={item}
+              targetMOS={targetMOS}
+              onRemove={removeItem}
+            />
+          ))}
         </div>
       )}
     </div>

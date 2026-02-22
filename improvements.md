@@ -36,7 +36,20 @@
 - **Automated Watchlist Entry**: Added a "Fetch" feature in the Watchlist page to automatically populate stock details by ticker, reducing manual data entry.
 - **Server Actions**: Implemented `fetchStockInfo` server action to handle backend stock data requests.
 
+## [Advanced Analytics & Personalization] - 2024-05-26
+- **User Settings**: Created a dedicated Settings page allowing users to customize their `preferredCurrency` and `targetMOS` percentage, persisted in Firestore.
+- **Payback Time Enhancements**:
+    - Added "Fetch" ticker feature to auto-populate price and EPS data.
+    - Implemented "Save to Watchlist" functionality to directly add stocks from the calculator to the user's watchlist.
+- **Historical Growth Grid**:
+    - Developed the `GrowthGrid` component to visualize 10-year historical growth of EPS, Revenue, and Equity using color-coded cells (LifeGrid design language).
+    - Integrated `getHistoricalGrowth` service using `yahooFinance.fundamentalsTimeSeries`.
+- **UI Refactoring**:
+    - Extracted `WatchlistItemCard` for better modularity.
+    - Integrated `GrowthGrid` into the expanded view of watchlist items.
+    - Updated navigation with the Settings link and ensured consistent dark-mode styling across new pages.
+
 ### Next Steps:
-- Implement data visualization for historical EPS and PE growth.
-- Add "Save to Watchlist" functionality directly from the Payback Time calculator.
-- Implement user profile settings (e.g., preferred currency, target MOS percentage).
+- Implement AI-driven business analysis summaries in the `WatchlistItemCard`.
+- Add export functionality for watchlist data (CSV/PDF).
+- Integrate portfolio allocation tracking based on Rule No. 1 principles.
