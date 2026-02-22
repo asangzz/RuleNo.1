@@ -36,7 +36,22 @@
 - **Automated Watchlist Entry**: Added a "Fetch" feature in the Watchlist page to automatically populate stock details by ticker, reducing manual data entry.
 - **Server Actions**: Implemented `fetchStockInfo` server action to handle backend stock data requests.
 
+## [User Preferences & Visualizations] - 2024-05-26
+- **User Profile Settings**:
+    - Created a dedicated Settings page (`src/app/settings/page.tsx`) for configuring investment preferences.
+    - Implemented Firestore persistence for `preferredCurrency` and `targetMOS`.
+    - Updated `Navigation` to include easy access to Settings.
+- **Dynamic Rule No. 1 Calculations**:
+    - Updated `calculateMOSPrice` to use the user's target MOS percentage instead of a hardcoded 50%.
+    - Synchronized Dashboard and Watchlist metrics with user-defined safety margins.
+- **LifeGrid-Style Visualizations**:
+    - Developed `GrowthGrid` component to provide visual heatmaps of historical growth.
+    - Integrated growth tracking for EPS, Revenue, and Equity into `WatchlistItemCard`.
+    - Refactored Watchlist to use a component-based architecture for better maintainability.
+- **Enhanced Calculator**:
+    - Upgraded the Payback Time tool with automated ticker fetching and "Save to Watchlist" functionality.
+
 ### Next Steps:
-- Implement data visualization for historical EPS and PE growth.
-- Add "Save to Watchlist" functionality directly from the Payback Time calculator.
-- Implement user profile settings (e.g., preferred currency, target MOS percentage).
+- Implement AI-powered "Management Quality" scoring based on annual reports.
+- Add export functionality for stock analysis reports.
+- Integrate market sector benchmarks for better context on growth rates.
