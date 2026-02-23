@@ -2,15 +2,16 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, query, deleteDoc, doc } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, deleteDoc, doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import {
   calculateStickerPrice,
   calculateMOSPrice,
   estimateFuturePE
 } from "@/lib/rule-one";
-import { cn } from "@/lib/utils";
-import { fetchStockInfo } from "./actions";
+import { cn, CURRENCY_SYMBOLS } from "@/lib/utils";
+import { fetchStockInfo, fetchHistoricalData } from "./actions";
+import { HistoricalData, UserSettings } from "@/lib/types";
 
 interface WatchlistItem {
   id: string;
@@ -25,8 +26,12 @@ interface WatchlistItem {
 export default function WatchlistPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<WatchlistItem[]>([]);
+  const [settings, setSettings] = useState<UserSettings>({ preferredCurrency: "USD", targetMOS: 50 });
   const [loading, setLoading] = useState(true);
   const [fetchingInfo, setFetchingInfo] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [historicalData, setHistoricalData] = useState<Record<string, HistoricalData[]>>({});
+  const [loadingHistory, setLoadingHistory] = useState<string | null>(null);
   const [newTicker, setNewTicker] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +57,7 @@ export default function WatchlistPage() {
           name: result.data.name,
           currentPrice: result.data.currentPrice,
           eps: result.data.eps,
+          historicalHighPE: result.data.historicalHighPE || 20,
         });
       } else {
         setError(result.error || "Failed to fetch stock info");
@@ -68,6 +74,13 @@ export default function WatchlistPage() {
     if (!user) return;
     setLoading(true);
     try {
+      // Fetch settings first
+      const settingsRef = doc(db, "users", user.uid, "settings", "profile");
+      const settingsSnap = await getDoc(settingsRef);
+      if (settingsSnap.exists()) {
+        setSettings(settingsSnap.data() as UserSettings);
+      }
+
       const q = query(collection(db, "users", user.uid, "watchlist"));
       const querySnapshot = await getDocs(q);
       const data = querySnapshot.docs.map(doc => ({
@@ -118,6 +131,31 @@ export default function WatchlistPage() {
       console.error("Error removing item:", error);
     }
   };
+
+  const toggleExpand = async (item: WatchlistItem) => {
+    if (expandedId === item.id) {
+      setExpandedId(null);
+      return;
+    }
+
+    setExpandedId(item.id);
+
+    if (!historicalData[item.ticker]) {
+      setLoadingHistory(item.id);
+      try {
+        const res = await fetchHistoricalData(item.ticker);
+        if (res.success && res.data) {
+          setHistoricalData(prev => ({ ...prev, [item.ticker]: res.data }));
+        }
+      } catch (err) {
+        console.error("Error fetching historical data:", err);
+      } finally {
+        setLoadingHistory(null);
+      }
+    }
+  };
+
+  const currencySymbol = CURRENCY_SYMBOLS[settings.preferredCurrency] || "$";
 
   return (
     <div className="space-y-6">
@@ -232,51 +270,98 @@ export default function WatchlistPage() {
       ) : (
         <div className="grid gap-4">
           {items.map((item) => {
-            const futurePE = estimateFuturePE(item.growthRate, item.historicalHighPE);
+            const futurePE = estimateFuturePE(item.growthRate, item.historicalHighPE || 20);
             const stickerPrice = calculateStickerPrice(item.eps, item.growthRate, futurePE);
-            const mosPrice = calculateMOSPrice(stickerPrice);
+            const mosPrice = calculateMOSPrice(stickerPrice, settings.targetMOS);
             const isSale = item.currentPrice <= mosPrice;
+            const isExpanded = expandedId === item.id;
 
             return (
-              <div key={item.id} className="p-6 bg-card border border-border rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-background border border-border rounded-lg flex items-center justify-center font-bold text-accent">
-                    {item.ticker}
+              <div key={item.id} className="flex flex-col bg-card border border-border rounded-xl overflow-hidden transition-all duration-300">
+                <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-background border border-border rounded-lg flex items-center justify-center font-bold text-accent">
+                      {item.ticker}
+                    </div>
+                    <div>
+                      <h3 className="font-bold">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground">Price: {currencySymbol}{item.currentPrice.toFixed(2)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground">Price: ${item.currentPrice.toFixed(2)}</p>
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+                    <div>
+                      <p className="text-xs font-medium uppercase text-muted-foreground">Sticker Price</p>
+                      <p className="font-bold">{currencySymbol}{stickerPrice.toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase text-muted-foreground">MOS ({settings.targetMOS}%)</p>
+                      <p className={cn("font-bold", isSale ? "text-green-500" : "text-foreground")}>
+                        {currencySymbol}{mosPrice.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="hidden md:block">
+                      <p className="text-xs font-medium uppercase text-muted-foreground">Status</p>
+                      <span className={cn(
+                        "text-xs px-2 py-1 rounded-full font-bold uppercase",
+                        isSale ? "bg-green-500/10 text-green-500" : "bg-slate-500/10 text-slate-500"
+                      )}>
+                        {isSale ? "On Sale" : "Wait"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => toggleExpand(item)}
+                      className="text-xs font-bold uppercase text-accent hover:underline"
+                    >
+                      {isExpanded ? "Hide Data" : "Growth Data"}
+                    </button>
+                    <button
+                      onClick={() => removeItem(item.id)}
+                      className="text-muted-foreground hover:text-red-500 transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-                  <div>
-                    <p className="text-xs font-medium uppercase text-muted-foreground">Sticker Price</p>
-                    <p className="font-bold">${stickerPrice.toFixed(2)}</p>
+                {isExpanded && (
+                  <div className="bg-muted/30 border-t border-border p-6 animate-in slide-in-from-top-2 duration-300">
+                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-4">Historical Financials (10Y)</h4>
+                    {loadingHistory === item.id ? (
+                      <div className="flex justify-center py-4">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-accent"></div>
+                      </div>
+                    ) : historicalData[item.ticker] ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground border-b border-border">
+                              <th className="pb-2">Year</th>
+                              <th className="pb-2">EPS</th>
+                              <th className="pb-2">Revenue</th>
+                              <th className="pb-2">Equity</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border">
+                            {historicalData[item.ticker].map((data) => (
+                              <tr key={data.year} className="text-xs">
+                                <td className="py-2 font-medium">{data.year}</td>
+                                <td className="py-2 text-accent font-bold">{currencySymbol}{data.eps.toFixed(2)}</td>
+                                <td className="py-2 text-muted-foreground">{currencySymbol}{(data.revenue / 1e9).toFixed(2)}B</td>
+                                <td className="py-2 text-muted-foreground">{currencySymbol}{(data.equity / 1e9).toFixed(2)}B</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No historical data available.</p>
+                    )}
                   </div>
-                  <div>
-                    <p className="text-xs font-medium uppercase text-muted-foreground">MOS Price</p>
-                    <p className={cn("font-bold", isSale ? "text-green-500" : "text-foreground")}>
-                      ${mosPrice.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="hidden md:block">
-                    <p className="text-xs font-medium uppercase text-muted-foreground">Status</p>
-                    <span className={cn(
-                      "text-xs px-2 py-1 rounded-full font-bold uppercase",
-                      isSale ? "bg-green-500/10 text-green-500" : "bg-slate-500/10 text-slate-500"
-                    )}>
-                      {isSale ? "On Sale" : "Wait"}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="text-muted-foreground hover:text-red-500 transition-colors"
-                >
-                  Remove
-                </button>
+                )}
               </div>
             );
           })}

@@ -36,7 +36,15 @@
 - **Automated Watchlist Entry**: Added a "Fetch" feature in the Watchlist page to automatically populate stock details by ticker, reducing manual data entry.
 - **Server Actions**: Implemented `fetchStockInfo` server action to handle backend stock data requests.
 
+## [Advanced Calculations & Personalization] - 2024-05-26
+- **User Settings & Persistence**: Created a dedicated Settings page to manage and persist user preferences (preferred currency, target Margin of Safety percentage) in Firestore.
+- **Dynamic MOS Calculations**: Updated the core Rule No. 1 logic to respect personalized Margin of Safety targets across the Dashboard and Watchlist.
+- **Enhanced Payback Time Tool**: Added real-time ticker fetching and "Save to Watchlist" functionality to the Payback Time calculator.
+- **Historical Growth Data**: Implemented 10-year historical growth fetching (EPS, Revenue, Equity) using the `yahoo-finance2` fundamentals API.
+- **Data Visualization**: Added a detailed historical financials table to Watchlist items, allowing for deep-dive analysis of "Wonderful Business" growth trends.
+- **Robust Financial Defaults**: Improved stock data fetching to include automatically calculated "robust" historical high PE ratios.
+
 ### Next Steps:
-- Implement data visualization for historical EPS and PE growth.
-- Add "Save to Watchlist" functionality directly from the Payback Time calculator.
-- Implement user profile settings (e.g., preferred currency, target MOS percentage).
+- Implement interactive charts for historical growth visualization.
+- Add AI-powered summaries for the historical financial data.
+- Integrate market indices for relative performance tracking.
