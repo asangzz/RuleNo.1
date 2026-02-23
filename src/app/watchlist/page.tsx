@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, query, deleteDoc, doc } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, deleteDoc, doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import {
   calculateStickerPrice,
   calculateMOSPrice,
   estimateFuturePE
 } from "@/lib/rule-one";
-import { cn } from "@/lib/utils";
+import { cn, CURRENCY_SYMBOLS } from "@/lib/utils";
 import { fetchStockInfo } from "./actions";
 
 interface WatchlistItem {
@@ -31,6 +31,11 @@ export default function WatchlistPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [userSettings, setUserSettings] = useState({
+    preferredCurrency: "USD",
+    targetMOS: 50,
+  });
+
   // Form states for adding a new ticker (simplified)
   const [formData, setFormData] = useState({
     name: "",
@@ -39,6 +44,45 @@ export default function WatchlistPage() {
     growthRate: 0.15,
     historicalHighPE: 20
   });
+
+  const currencySymbol = CURRENCY_SYMBOLS[userSettings.preferredCurrency] || "$";
+
+  const fetchWatchlist = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      // Fetch settings first
+      const settingsRef = doc(db, "users", user.uid, "settings", "profile");
+      const settingsSnap = await getDoc(settingsRef);
+      if (settingsSnap.exists()) {
+        const data = settingsSnap.data();
+        setUserSettings({
+          preferredCurrency: data.preferredCurrency || "USD",
+          targetMOS: data.targetMOS || 50,
+        });
+      }
+
+      const q = query(collection(db, "users", user.uid, "watchlist"));
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as WatchlistItem[];
+      setItems(data);
+    } catch (error) {
+      console.error("Error fetching watchlist:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchWatchlist();
+    } else {
+      setLoading(false);
+    }
+  }, [user, fetchWatchlist]);
 
   const handleFetchStockInfo = async () => {
     if (!newTicker) return;
@@ -63,32 +107,6 @@ export default function WatchlistPage() {
       setFetchingInfo(false);
     }
   };
-
-  const fetchWatchlist = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
-      const q = query(collection(db, "users", user.uid, "watchlist"));
-      const querySnapshot = await getDocs(q);
-      const data = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as WatchlistItem[];
-      setItems(data);
-    } catch (error) {
-      console.error("Error fetching watchlist:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (user) {
-      fetchWatchlist();
-    } else {
-      setLoading(false);
-    }
-  }, [user, fetchWatchlist]);
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,7 +189,7 @@ export default function WatchlistPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium uppercase text-muted-foreground">Current Price</label>
+              <label className="text-xs font-medium uppercase text-muted-foreground">Current Price ({currencySymbol})</label>
               <input
                 type="number"
                 step="0.01"
@@ -182,7 +200,7 @@ export default function WatchlistPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium uppercase text-muted-foreground">EPS (TTM)</label>
+              <label className="text-xs font-medium uppercase text-muted-foreground">EPS (TTM) ({currencySymbol})</label>
               <input
                 type="number"
                 step="0.01"
@@ -234,7 +252,7 @@ export default function WatchlistPage() {
           {items.map((item) => {
             const futurePE = estimateFuturePE(item.growthRate, item.historicalHighPE);
             const stickerPrice = calculateStickerPrice(item.eps, item.growthRate, futurePE);
-            const mosPrice = calculateMOSPrice(stickerPrice);
+            const mosPrice = calculateMOSPrice(stickerPrice, userSettings.targetMOS);
             const isSale = item.currentPrice <= mosPrice;
 
             return (
@@ -245,19 +263,19 @@ export default function WatchlistPage() {
                   </div>
                   <div>
                     <h3 className="font-bold">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground">Price: ${item.currentPrice.toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground">Price: {currencySymbol}{item.currentPrice.toFixed(2)}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
                   <div>
                     <p className="text-xs font-medium uppercase text-muted-foreground">Sticker Price</p>
-                    <p className="font-bold">${stickerPrice.toFixed(2)}</p>
+                    <p className="font-bold">{currencySymbol}{stickerPrice.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-medium uppercase text-muted-foreground">MOS Price</p>
+                    <p className="text-xs font-medium uppercase text-muted-foreground">MOS Price ({userSettings.targetMOS}%)</p>
                     <p className={cn("font-bold", isSale ? "text-green-500" : "text-foreground")}>
-                      ${mosPrice.toFixed(2)}
+                      {currencySymbol}{mosPrice.toFixed(2)}
                     </p>
                   </div>
                   <div className="hidden md:block">
