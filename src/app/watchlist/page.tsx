@@ -2,15 +2,18 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, query, deleteDoc, doc } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, deleteDoc, doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
+import { UserSettings } from "@/lib/types";
 import {
   calculateStickerPrice,
   calculateMOSPrice,
   estimateFuturePE
 } from "@/lib/rule-one";
-import { cn } from "@/lib/utils";
+import { cn, getCurrencySymbol } from "@/lib/utils";
 import { fetchStockInfo } from "./actions";
+import GrowthChart from "@/components/GrowthChart";
+import { HistoricalData } from "@/lib/types";
 
 interface WatchlistItem {
   id: string;
@@ -20,11 +23,13 @@ interface WatchlistItem {
   eps: number;
   growthRate: number;
   historicalHighPE: number;
+  historicalData?: HistoricalData[];
 }
 
 export default function WatchlistPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<WatchlistItem[]>([]);
+  const [settings, setSettings] = useState<UserSettings>({ currency: "USD", targetMOS: 50 });
   const [loading, setLoading] = useState(true);
   const [fetchingInfo, setFetchingInfo] = useState(false);
   const [newTicker, setNewTicker] = useState("");
@@ -40,6 +45,8 @@ export default function WatchlistPage() {
     historicalHighPE: 20
   });
 
+  const [fetchedHistoricalData, setFetchedHistoricalData] = useState<HistoricalData[] | undefined>(undefined);
+
   const handleFetchStockInfo = async () => {
     if (!newTicker) return;
     setFetchingInfo(true);
@@ -53,6 +60,7 @@ export default function WatchlistPage() {
           currentPrice: result.data.currentPrice,
           eps: result.data.eps,
         });
+        setFetchedHistoricalData(result.data.historicalData);
       } else {
         setError(result.error || "Failed to fetch stock info");
       }
@@ -68,6 +76,13 @@ export default function WatchlistPage() {
     if (!user) return;
     setLoading(true);
     try {
+      // Fetch settings first
+      const settingsRef = doc(db, "users", user.uid, "settings", "profile");
+      const settingsSnap = await getDoc(settingsRef);
+      if (settingsSnap.exists()) {
+        setSettings(settingsSnap.data() as UserSettings);
+      }
+
       const q = query(collection(db, "users", user.uid, "watchlist"));
       const querySnapshot = await getDocs(q);
       const data = querySnapshot.docs.map(doc => ({
@@ -98,10 +113,12 @@ export default function WatchlistPage() {
       await addDoc(collection(db, "users", user.uid, "watchlist"), {
         ticker: newTicker.toUpperCase(),
         ...formData,
+        historicalData: fetchedHistoricalData || null,
         createdAt: new Date().toISOString()
       });
       setNewTicker("");
       setFormData({ name: "", currentPrice: 0, eps: 0, growthRate: 0.15, historicalHighPE: 20 });
+      setFetchedHistoricalData(undefined);
       setIsAdding(false);
       fetchWatchlist();
     } catch (error) {
@@ -234,30 +251,32 @@ export default function WatchlistPage() {
           {items.map((item) => {
             const futurePE = estimateFuturePE(item.growthRate, item.historicalHighPE);
             const stickerPrice = calculateStickerPrice(item.eps, item.growthRate, futurePE);
-            const mosPrice = calculateMOSPrice(stickerPrice);
+            const mosPrice = calculateMOSPrice(stickerPrice, settings.targetMOS);
             const isSale = item.currentPrice <= mosPrice;
+            const currencySymbol = getCurrencySymbol(settings.currency);
 
             return (
-              <div key={item.id} className="p-6 bg-card border border-border rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div key={item.id} className="p-6 bg-card border border-border rounded-xl space-y-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-background border border-border rounded-lg flex items-center justify-center font-bold text-accent">
                     {item.ticker}
                   </div>
                   <div>
                     <h3 className="font-bold">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground">Price: ${item.currentPrice.toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground">Price: {currencySymbol}{item.currentPrice.toFixed(2)}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
                   <div>
                     <p className="text-xs font-medium uppercase text-muted-foreground">Sticker Price</p>
-                    <p className="font-bold">${stickerPrice.toFixed(2)}</p>
+                    <p className="font-bold">{currencySymbol}{stickerPrice.toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-xs font-medium uppercase text-muted-foreground">MOS Price</p>
                     <p className={cn("font-bold", isSale ? "text-green-500" : "text-foreground")}>
-                      ${mosPrice.toFixed(2)}
+                      {currencySymbol}{mosPrice.toFixed(2)}
                     </p>
                   </div>
                   <div className="hidden md:block">
@@ -277,6 +296,15 @@ export default function WatchlistPage() {
                 >
                   Remove
                 </button>
+                </div>
+
+                {item.historicalData && item.historicalData.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4 border-t border-border">
+                    <GrowthChart data={item.historicalData} metric="eps" title="Earnings Per Share" />
+                    <GrowthChart data={item.historicalData} metric="revenue" title="Total Revenue" />
+                    <GrowthChart data={item.historicalData} metric="equity" title="Equity" />
+                  </div>
+                )}
               </div>
             );
           })}
