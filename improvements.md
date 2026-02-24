@@ -36,7 +36,15 @@
 - **Automated Watchlist Entry**: Added a "Fetch" feature in the Watchlist page to automatically populate stock details by ticker, reducing manual data entry.
 - **Server Actions**: Implemented `fetchStockInfo` server action to handle backend stock data requests.
 
+## [Personalization & Enhanced Analysis] - 2024-05-26
+- **Shared Type System**: Introduced `src/lib/types.ts` to standardize `StockInfo`, `HistoricalData`, and `UserSettings` across the app.
+- **User Settings**: Implemented a new Settings page allowing users to customize their preferred currency and target Margin of Safety (MOS).
+- **Personalized Calculations**: Updated Rule No. 1 logic to respect user-defined MOS percentages in all status evaluations; integrated user settings (currency, target MOS) into Watchlist and Payback Time pages.
+- **Historical Data Integration**: Enhanced `stock-service.ts` to fetch 10-year annual financials (EPS, Revenue, Equity) using `yahoo-finance2`.
+- **Minimalist Visualizations**: Created a reusable `GrowthChart` component using SVG to visualize 10-year financial trends on the Watchlist and Analysis pages.
+- **Improved Calculator**: Upgraded the Payback Time tool with ticker-based fetching, "Save to Watchlist" capability, and integrated Sticker/MOS price displays.
+
 ### Next Steps:
-- Implement data visualization for historical EPS and PE growth.
-- Add "Save to Watchlist" functionality directly from the Payback Time calculator.
-- Implement user profile settings (e.g., preferred currency, target MOS percentage).
+- Implement a 10-cap valuation tool to supplement Sticker Price analysis.
+- Add "Management" scorecard to the Analysis page for manual evaluation.
+- Implement portfolio diversification visualization (Heatmap by Sector).

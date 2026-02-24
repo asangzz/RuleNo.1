@@ -1,12 +1,14 @@
 "use server";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getStockData } from "@/lib/stock-service";
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || "");
 
 export async function analyzeBusiness(ticker: string) {
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     // Return mock data if no API key is provided
+    const stockInfo = await getStockData(ticker);
     return {
       success: true,
       data: {
@@ -16,7 +18,8 @@ export async function analyzeBusiness(ticker: string) {
         management: "Experienced leadership with a track record of capital allocation and innovation.",
         isWonderful: true,
         riskScore: 2, // 1-10
-        summary: "A high-quality business with a sustainable competitive advantage and strong financials."
+        summary: "A high-quality business with a sustainable competitive advantage and strong financials.",
+        historicalData: stockInfo?.historicalData || []
       }
     };
   }
@@ -50,6 +53,13 @@ export async function analyzeBusiness(ticker: string) {
     if (jsonStart !== -1 && jsonEnd !== -1) {
       const jsonStr = text.substring(jsonStart, jsonEnd + 1);
       const data = JSON.parse(jsonStr);
+
+      // Supplement with historical data
+      const stockInfo = await getStockData(ticker);
+      if (stockInfo) {
+        data.historicalData = stockInfo.historicalData;
+      }
+
       return { success: true, data };
     } else {
       throw new Error("Could not find JSON in AI response");

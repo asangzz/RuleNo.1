@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { analyzeBusiness } from "./actions";
+import GrowthChart from "@/components/GrowthChart";
+import { HistoricalData } from "@/lib/types";
 
 interface AnalysisResult {
   ticker: string;
@@ -11,6 +13,7 @@ interface AnalysisResult {
   isWonderful: boolean;
   riskScore: number;
   summary: string;
+  historicalData?: HistoricalData[];
 }
 
 export default function AnalysisPage() {
@@ -110,6 +113,17 @@ export default function AnalysisPage() {
               &ldquo;{result.summary}&rdquo;
             </p>
           </div>
+
+          {result.historicalData && result.historicalData.length > 0 && (
+            <div className="p-6 bg-card border border-border rounded-2xl space-y-6">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Historical Growth Metrics</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <GrowthChart data={result.historicalData} metric="eps" title="Earnings Per Share" />
+                <GrowthChart data={result.historicalData} metric="revenue" title="Total Revenue" />
+                <GrowthChart data={result.historicalData} metric="equity" title="Equity" />
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-center">
             <button
