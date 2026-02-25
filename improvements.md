@@ -36,7 +36,25 @@
 - **Automated Watchlist Entry**: Added a "Fetch" feature in the Watchlist page to automatically populate stock details by ticker, reducing manual data entry.
 - **Server Actions**: Implemented `fetchStockInfo` server action to handle backend stock data requests.
 
+## [User Personalization & Advanced Analytics] - 2024-05-26
+- **User Settings & Personalization**:
+    - Created a dedicated Settings page for managing preferred currency and target Margin of Safety (MOS).
+    - Persisted user preferences in Firestore (`users/{userId}/settings/profile`).
+    - Integrated user settings into core Rule No. 1 calculations and UI displays across the Dashboard and Watchlist.
+- **Enhanced Stock Analytics**:
+    - Implemented `getHistoricalGrowth` in `src/lib/stock-service.ts` to fetch 10-year annual financial data (EPS, Revenue, Equity) using `yahoo-finance2`.
+    - Improved `historicalHighPE` calculation by averaging historical data points.
+    - Added a minimalist grid-based visualization for historical performance in the Watchlist page, matching the LifeGrid aesthetic.
+- **Payback Time Tool Enhancements**:
+    - Integrated real-time ticker fetching into the Payback Time calculator.
+    - Added "Save to Watchlist" functionality directly from the calculator results.
+    - Expanded the calculator UI to include Sticker Price and MOS Price calculations.
+- **Technical Quality**:
+    - Centralized shared interfaces in `src/lib/types.ts`.
+    - Added `formatCurrency` utility for consistent internationalization.
+    - Ensured full TypeScript type safety and ESLint compliance.
+
 ### Next Steps:
-- Implement data visualization for historical EPS and PE growth.
-- Add "Save to Watchlist" functionality directly from the Payback Time calculator.
-- Implement user profile settings (e.g., preferred currency, target MOS percentage).
+- Implement PDF export for detailed business analysis reports.
+- Add multi-stock comparison view in the Watchlist.
+- Integrate news sentiment analysis for "Wonderful Business" qualitative assessment.

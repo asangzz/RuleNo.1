@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query } from "firebase/firestore";
+import { collection, getDocs, query, doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import {
   calculateStickerPrice,
@@ -10,6 +10,7 @@ import {
   estimateFuturePE
 } from "@/lib/rule-one";
 import { cn } from "@/lib/utils";
+import { UserSettings } from "@/lib/types";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -17,6 +18,10 @@ export default function DashboardPage() {
     wonderful: 0,
     watchlist: 0,
     pending: 0
+  });
+  const [, setUserSettings] = useState<UserSettings>({
+    currency: "USD",
+    targetMOS: 50,
   });
   const [loading, setLoading] = useState(true);
 
@@ -26,6 +31,16 @@ export default function DashboardPage() {
       return;
     }
     try {
+      // Fetch Settings
+      const settingsRef = doc(db, "users", user.uid, "settings", "profile");
+      const settingsSnap = await getDoc(settingsRef);
+      let targetMOS = 50;
+      if (settingsSnap.exists()) {
+        const settings = settingsSnap.data() as UserSettings;
+        setUserSettings(settings);
+        targetMOS = settings.targetMOS;
+      }
+
       const q = query(collection(db, "users", user.uid, "watchlist"));
       const querySnapshot = await getDocs(q);
       const watchlistCount = querySnapshot.docs.length;
@@ -35,7 +50,7 @@ export default function DashboardPage() {
         const data = doc.data();
         const futurePE = estimateFuturePE(data.growthRate, data.historicalHighPE);
         const stickerPrice = calculateStickerPrice(data.eps, data.growthRate, futurePE);
-        const mosPrice = calculateMOSPrice(stickerPrice);
+        const mosPrice = calculateMOSPrice(stickerPrice, targetMOS);
         if (data.currentPrice <= mosPrice) {
           wonderfulCount++;
         }
