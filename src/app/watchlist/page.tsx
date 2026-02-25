@@ -2,15 +2,18 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, query, deleteDoc, doc } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, deleteDoc, doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import {
   calculateStickerPrice,
   calculateMOSPrice,
   estimateFuturePE
 } from "@/lib/rule-one";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { fetchStockInfo } from "./actions";
+import { UserSettings } from "@/lib/types";
+
+import { HistoricalData } from "@/lib/types";
 
 interface WatchlistItem {
   id: string;
@@ -20,16 +23,22 @@ interface WatchlistItem {
   eps: number;
   growthRate: number;
   historicalHighPE: number;
+  historicalGrowth?: HistoricalData[];
 }
 
 export default function WatchlistPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<WatchlistItem[]>([]);
+  const [userSettings, setUserSettings] = useState<UserSettings>({
+    currency: "USD",
+    targetMOS: 50,
+  });
   const [loading, setLoading] = useState(true);
   const [fetchingInfo, setFetchingInfo] = useState(false);
   const [newTicker, setNewTicker] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Form states for adding a new ticker (simplified)
   const [formData, setFormData] = useState({
@@ -37,7 +46,8 @@ export default function WatchlistPage() {
     currentPrice: 0,
     eps: 0,
     growthRate: 0.15,
-    historicalHighPE: 20
+    historicalHighPE: 20,
+    historicalGrowth: [] as HistoricalData[]
   });
 
   const handleFetchStockInfo = async () => {
@@ -52,6 +62,8 @@ export default function WatchlistPage() {
           name: result.data.name,
           currentPrice: result.data.currentPrice,
           eps: result.data.eps,
+          historicalHighPE: result.data.historicalHighPE || 20,
+          historicalGrowth: result.data.historicalGrowth || []
         });
       } else {
         setError(result.error || "Failed to fetch stock info");
@@ -64,10 +76,18 @@ export default function WatchlistPage() {
     }
   };
 
-  const fetchWatchlist = useCallback(async () => {
+  const fetchUserData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
+      // Fetch Settings
+      const settingsRef = doc(db, "users", user.uid, "settings", "profile");
+      const settingsSnap = await getDoc(settingsRef);
+      if (settingsSnap.exists()) {
+        setUserSettings(settingsSnap.data() as UserSettings);
+      }
+
+      // Fetch Watchlist
       const q = query(collection(db, "users", user.uid, "watchlist"));
       const querySnapshot = await getDocs(q);
       const data = querySnapshot.docs.map(doc => ({
@@ -76,7 +96,7 @@ export default function WatchlistPage() {
       })) as WatchlistItem[];
       setItems(data);
     } catch (error) {
-      console.error("Error fetching watchlist:", error);
+      console.error("Error fetching user data:", error);
     } finally {
       setLoading(false);
     }
@@ -84,11 +104,11 @@ export default function WatchlistPage() {
 
   useEffect(() => {
     if (user) {
-      fetchWatchlist();
+      fetchUserData();
     } else {
       setLoading(false);
     }
-  }, [user, fetchWatchlist]);
+  }, [user, fetchUserData]);
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,9 +121,9 @@ export default function WatchlistPage() {
         createdAt: new Date().toISOString()
       });
       setNewTicker("");
-      setFormData({ name: "", currentPrice: 0, eps: 0, growthRate: 0.15, historicalHighPE: 20 });
+      setFormData({ name: "", currentPrice: 0, eps: 0, growthRate: 0.15, historicalHighPE: 20, historicalGrowth: [] });
       setIsAdding(false);
-      fetchWatchlist();
+      fetchUserData();
     } catch (error) {
       console.error("Error adding item:", error);
     }
@@ -234,30 +254,34 @@ export default function WatchlistPage() {
           {items.map((item) => {
             const futurePE = estimateFuturePE(item.growthRate, item.historicalHighPE);
             const stickerPrice = calculateStickerPrice(item.eps, item.growthRate, futurePE);
-            const mosPrice = calculateMOSPrice(stickerPrice);
+            const mosPrice = calculateMOSPrice(stickerPrice, userSettings.targetMOS);
             const isSale = item.currentPrice <= mosPrice;
 
             return (
-              <div key={item.id} className="p-6 bg-card border border-border rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div key={item.id} className="space-y-4">
+              <div
+                className="p-6 bg-card border border-border rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:border-accent/50 transition-colors"
+                onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
+              >
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-background border border-border rounded-lg flex items-center justify-center font-bold text-accent">
                     {item.ticker}
                   </div>
                   <div>
                     <h3 className="font-bold">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground">Price: ${item.currentPrice.toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground">Price: {formatCurrency(item.currentPrice, userSettings.currency)}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
                   <div>
                     <p className="text-xs font-medium uppercase text-muted-foreground">Sticker Price</p>
-                    <p className="font-bold">${stickerPrice.toFixed(2)}</p>
+                    <p className="font-bold">{formatCurrency(stickerPrice, userSettings.currency)}</p>
                   </div>
                   <div>
                     <p className="text-xs font-medium uppercase text-muted-foreground">MOS Price</p>
                     <p className={cn("font-bold", isSale ? "text-green-500" : "text-foreground")}>
-                      ${mosPrice.toFixed(2)}
+                      {formatCurrency(mosPrice, userSettings.currency)}
                     </p>
                   </div>
                   <div className="hidden md:block">
@@ -271,12 +295,94 @@ export default function WatchlistPage() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="text-muted-foreground hover:text-red-500 transition-colors"
-                >
-                  Remove
-                </button>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeItem(item.id);
+                    }}
+                    className="text-xs font-bold text-muted-foreground hover:text-red-500 transition-colors uppercase tracking-tighter"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+
+              {expandedId === item.id && item.historicalGrowth && item.historicalGrowth.length > 0 && (
+                <div className="p-6 bg-accent/5 border border-accent/20 rounded-xl animate-in fade-in slide-in-from-top-2">
+                  <h4 className="text-[10px] font-bold text-accent uppercase tracking-[0.2em] mb-4">Historical Performance</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="space-y-4">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">EPS Growth</p>
+                      <div className="flex flex-wrap gap-1">
+                        {item.historicalGrowth.map((g, i) => {
+                          const prev = item.historicalGrowth![i + 1];
+                          const growth = prev ? (g.eps - prev.eps) / Math.abs(prev.eps) : 0;
+                          return (
+                            <div
+                              key={g.year}
+                              className={cn(
+                                "w-8 h-8 rounded-sm flex items-center justify-center text-[8px] font-bold",
+                                growth > 0.15 ? "bg-green-500/20 text-green-500" :
+                                growth > 0 ? "bg-yellow-500/20 text-yellow-500" : "bg-red-500/20 text-red-500"
+                              )}
+                              title={`${g.year}: ${(growth * 100).toFixed(1)}%`}
+                            >
+                              {g.year.toString().slice(-2)}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Revenue Growth</p>
+                      <div className="flex flex-wrap gap-1">
+                        {item.historicalGrowth.map((g, i) => {
+                          const prev = item.historicalGrowth![i + 1];
+                          const growth = prev ? (g.revenue - prev.revenue) / Math.abs(prev.revenue) : 0;
+                          return (
+                            <div
+                              key={g.year}
+                              className={cn(
+                                "w-8 h-8 rounded-sm flex items-center justify-center text-[8px] font-bold",
+                                growth > 0.1 ? "bg-green-500/20 text-green-500" :
+                                growth > 0 ? "bg-yellow-500/20 text-yellow-500" : "bg-red-500/20 text-red-500"
+                              )}
+                              title={`${g.year}: ${(growth * 100).toFixed(1)}%`}
+                            >
+                              {g.year.toString().slice(-2)}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Equity Growth</p>
+                      <div className="flex flex-wrap gap-1">
+                        {item.historicalGrowth.map((g, i) => {
+                          const prev = item.historicalGrowth![i + 1];
+                          const growth = prev ? (g.equity - prev.equity) / Math.abs(prev.equity) : 0;
+                          return (
+                            <div
+                              key={g.year}
+                              className={cn(
+                                "w-8 h-8 rounded-sm flex items-center justify-center text-[8px] font-bold",
+                                growth > 0.1 ? "bg-green-500/20 text-green-500" :
+                                growth > 0 ? "bg-yellow-500/20 text-yellow-500" : "bg-red-500/20 text-red-500"
+                              )}
+                              title={`${g.year}: ${(growth * 100).toFixed(1)}%`}
+                            >
+                              {g.year.toString().slice(-2)}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               </div>
             );
           })}
