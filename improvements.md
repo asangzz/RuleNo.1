@@ -36,7 +36,24 @@
 - **Automated Watchlist Entry**: Added a "Fetch" feature in the Watchlist page to automatically populate stock details by ticker, reducing manual data entry.
 - **Server Actions**: Implemented `fetchStockInfo` server action to handle backend stock data requests.
 
+## [Settings & Historical Data] - 2024-05-26
+- **User Profile Settings**:
+    - Created a dedicated Settings page to manage user preferences (Currency, Target MOS).
+    - Persisted settings in Firestore and integrated them into Dashboard and Watchlist calculations.
+- **Advanced Stock Service**:
+    - Implemented `getHistoricalGrowth` to fetch 10-year historical annual EPS, Revenue, and Equity.
+    - Updated `fetchStockInfo` and added `fetchHistoricalData` server actions.
+- **Enhanced Watchlist**:
+    - Added an "Expanded View" for watchlist items featuring a minimalist performance grid/heatmap for historical consistency tracking.
+    - Updated UI to use user-defined Margin of Safety.
+- **Payback Time Improvements**:
+    - Integrated ticker fetching and "Save to Watchlist" functionality.
+    - Added display for Sticker Price, MOS Price, and Future PE based on user settings.
+- **Developer Experience**:
+    - Centralized shared types in `src/lib/types.ts`.
+    - Improved accessibility and testing with `htmlFor` and `id` on form inputs.
+
 ### Next Steps:
-- Implement data visualization for historical EPS and PE growth.
-- Add "Save to Watchlist" functionality directly from the Payback Time calculator.
-- Implement user profile settings (e.g., preferred currency, target MOS percentage).
+- Implement AI-driven comparison between multiple companies.
+- Add portfolio simulation based on MOS Buy/Sell targets.
+- Implement PDF export for business analysis reports.

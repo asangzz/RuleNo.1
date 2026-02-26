@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, query, deleteDoc, doc } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, deleteDoc, doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import {
   calculateStickerPrice,
@@ -10,22 +10,17 @@ import {
   estimateFuturePE
 } from "@/lib/rule-one";
 import { cn } from "@/lib/utils";
-import { fetchStockInfo } from "./actions";
-
-interface WatchlistItem {
-  id: string;
-  ticker: string;
-  name: string;
-  currentPrice: number;
-  eps: number;
-  growthRate: number;
-  historicalHighPE: number;
-}
+import { fetchStockInfo, fetchHistoricalData } from "./actions";
+import { WatchlistItem, UserSettings, HistoricalData, HistoricalPoint } from "@/lib/types";
 
 export default function WatchlistPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<WatchlistItem[]>([]);
+  const [settings, setSettings] = useState<UserSettings>({ currency: "USD", targetMOS: 50 });
   const [loading, setLoading] = useState(true);
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const [historicalData, setHistoricalData] = useState<Record<string, HistoricalData>>({});
+  const [loadingHistory, setLoadingHistory] = useState<Record<string, boolean>>({});
   const [fetchingInfo, setFetchingInfo] = useState(false);
   const [newTicker, setNewTicker] = useState("");
   const [isAdding, setIsAdding] = useState(false);
@@ -68,6 +63,13 @@ export default function WatchlistPage() {
     if (!user) return;
     setLoading(true);
     try {
+      // Fetch user settings
+      const settingsRef = doc(db, "users", user.uid, "settings", "profile");
+      const settingsSnap = await getDoc(settingsRef);
+      if (settingsSnap.exists()) {
+        setSettings(settingsSnap.data() as UserSettings);
+      }
+
       const q = query(collection(db, "users", user.uid, "watchlist"));
       const querySnapshot = await getDocs(q);
       const data = querySnapshot.docs.map(doc => ({
@@ -119,6 +121,25 @@ export default function WatchlistPage() {
     }
   };
 
+  const toggleExpand = async (item: WatchlistItem) => {
+    const isExpanding = !expandedItems[item.id];
+    setExpandedItems(prev => ({ ...prev, [item.id]: isExpanding }));
+
+    if (isExpanding && !historicalData[item.id]) {
+      setLoadingHistory(prev => ({ ...prev, [item.id]: true }));
+      try {
+        const res = await fetchHistoricalData(item.ticker);
+        if (res.success && res.data) {
+          setHistoricalData(prev => ({ ...prev, [item.id]: res.data }));
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingHistory(prev => ({ ...prev, [item.id]: false }));
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       <header className="flex justify-between items-center">
@@ -138,9 +159,10 @@ export default function WatchlistPage() {
         <form onSubmit={handleAddItem} className="p-6 bg-card border border-border rounded-xl space-y-4 animate-in fade-in slide-in-from-top-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="flex flex-col">
-              <label className="text-xs font-medium uppercase text-muted-foreground">Ticker</label>
+              <label htmlFor="new-ticker" className="text-xs font-medium uppercase text-muted-foreground">Ticker</label>
               <div className="flex gap-2 mt-1">
                 <input
+                  id="new-ticker"
                   type="text"
                   value={newTicker}
                   onChange={(e) => setNewTicker(e.target.value)}
@@ -160,8 +182,9 @@ export default function WatchlistPage() {
               {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
             </div>
             <div>
-              <label className="text-xs font-medium uppercase text-muted-foreground">Company Name</label>
+              <label htmlFor="name" className="text-xs font-medium uppercase text-muted-foreground">Company Name</label>
               <input
+                id="name"
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
@@ -171,8 +194,9 @@ export default function WatchlistPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium uppercase text-muted-foreground">Current Price</label>
+              <label htmlFor="currentPrice" className="text-xs font-medium uppercase text-muted-foreground">Current Price</label>
               <input
+                id="currentPrice"
                 type="number"
                 step="0.01"
                 value={formData.currentPrice}
@@ -182,8 +206,9 @@ export default function WatchlistPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium uppercase text-muted-foreground">EPS (TTM)</label>
+              <label htmlFor="eps" className="text-xs font-medium uppercase text-muted-foreground">EPS (TTM)</label>
               <input
+                id="eps"
                 type="number"
                 step="0.01"
                 value={formData.eps}
@@ -193,8 +218,9 @@ export default function WatchlistPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium uppercase text-muted-foreground">Estimated Growth (decimal)</label>
+              <label htmlFor="growthRate" className="text-xs font-medium uppercase text-muted-foreground">Estimated Growth (decimal)</label>
               <input
+                id="growthRate"
                 type="number"
                 step="0.01"
                 value={formData.growthRate}
@@ -204,8 +230,9 @@ export default function WatchlistPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium uppercase text-muted-foreground">Historical High PE</label>
+              <label htmlFor="historicalHighPE" className="text-xs font-medium uppercase text-muted-foreground">Historical High PE</label>
               <input
+                id="historicalHighPE"
                 type="number"
                 step="0.1"
                 value={formData.historicalHighPE}
@@ -234,22 +261,27 @@ export default function WatchlistPage() {
           {items.map((item) => {
             const futurePE = estimateFuturePE(item.growthRate, item.historicalHighPE);
             const stickerPrice = calculateStickerPrice(item.eps, item.growthRate, futurePE);
-            const mosPrice = calculateMOSPrice(stickerPrice);
+            const mosPrice = calculateMOSPrice(stickerPrice, settings.targetMOS);
             const isSale = item.currentPrice <= mosPrice;
 
+            const isExpanded = expandedItems[item.id];
+            const history = historicalData[item.id];
+            const isHistoryLoading = loadingHistory[item.id];
+
             return (
-              <div key={item.id} className="p-6 bg-card border border-border rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-background border border-border rounded-lg flex items-center justify-center font-bold text-accent">
+              <div key={item.id} className="flex flex-col bg-card border border-border rounded-xl overflow-hidden transition-all duration-300">
+                <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4 cursor-pointer group" onClick={() => toggleExpand(item)}>
+                  <div className="w-12 h-12 bg-background border border-border rounded-lg flex items-center justify-center font-bold text-accent group-hover:border-accent transition-colors">
                     {item.ticker}
                   </div>
                   <div>
-                    <h3 className="font-bold">{item.name}</h3>
+                    <h3 className="font-bold group-hover:text-accent transition-colors">{item.name}</h3>
                     <p className="text-sm text-muted-foreground">Price: ${item.currentPrice.toFixed(2)}</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                   <div>
                     <p className="text-xs font-medium uppercase text-muted-foreground">Sticker Price</p>
                     <p className="font-bold">${stickerPrice.toFixed(2)}</p>
@@ -269,19 +301,85 @@ export default function WatchlistPage() {
                       {isSale ? "On Sale" : "Wait"}
                     </span>
                   </div>
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => toggleExpand(item)}
+                      className="text-xs font-bold uppercase text-accent hover:underline"
+                    >
+                      {isExpanded ? "Hide Details" : "Show Details"}
+                    </button>
+                    <button
+                      onClick={() => removeItem(item.id)}
+                      className="text-muted-foreground hover:text-red-500 transition-colors ml-4"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    </button>
+                  </div>
+                </div>
                 </div>
 
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="text-muted-foreground hover:text-red-500 transition-colors"
-                >
-                  Remove
-                </button>
+                {isExpanded && (
+                  <div className="p-6 pt-0 border-t border-border bg-muted/20 animate-in slide-in-from-top-2 duration-200">
+                    {isHistoryLoading ? (
+                      <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-accent"></div>
+                      </div>
+                    ) : history ? (
+                      <div className="space-y-6 mt-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                          <HistoryGrid title="Annual EPS" data={history.annualEarningsPerShare} />
+                          <HistoryGrid title="Total Revenue" data={history.annualTotalRevenue} isLarge />
+                          <HistoryGrid title="Equity" data={history.annualStockholdersEquity} isLarge />
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-center py-8 text-sm text-muted-foreground">No historical data available.</p>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function HistoryGrid({ title, data, isLarge = false }: { title: string, data: HistoricalPoint[], isLarge?: boolean }) {
+  // Take last 10 years
+  const last10 = data.slice(-10);
+
+  return (
+    <div className="space-y-3">
+      <h4 className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">{title}</h4>
+      <div className="grid grid-cols-5 gap-2">
+        {last10.map((point, i) => {
+          const prev = last10[i-1];
+          const hasGrowth = prev && point.value > prev.value;
+          const growth = prev ? ((point.value - prev.value) / Math.abs(prev.value)) * 100 : 0;
+
+          return (
+            <div key={point.year} className="group relative">
+              <div className={cn(
+                "h-10 rounded flex items-center justify-center text-[10px] font-bold transition-all hover:scale-105",
+                hasGrowth ? "bg-green-500/10 text-green-500 border border-green-500/20" :
+                i === 0 ? "bg-slate-500/10 text-slate-500 border border-slate-500/20" :
+                "bg-red-500/10 text-red-500 border border-red-500/20"
+              )}>
+                {point.year.toString().slice(-2)}
+              </div>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-popover border border-border rounded shadow-xl text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <p className="font-bold">{point.year}: {isLarge ? `$${(point.value / 1e9).toFixed(1)}B` : `$${point.value.toFixed(2)}`}</p>
+                {prev && <p className={hasGrowth ? "text-green-500" : "text-red-500"}>{growth > 0 ? "+" : ""}{growth.toFixed(1)}% growth</p>}
+              </div>
+            </div>
+          );
+        })}
+        {Array.from({ length: 10 - last10.length }).map((_, i) => (
+          <div key={`empty-${i}`} className="h-10 rounded bg-slate-900/50 border border-border/50 border-dashed" />
+        ))}
+      </div>
     </div>
   );
 }
