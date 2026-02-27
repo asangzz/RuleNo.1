@@ -33,3 +33,22 @@ export interface WatchlistItem {
   historicalHighPE: number;
   createdAt: string;
 }
+
+export interface AnalysisResult {
+  ticker: string;
+  meaning: string;
+  moat: string;
+  management: string;
+  isWonderful: boolean;
+  riskScore: number;
+  summary: string;
+}
+
+export interface ComparisonResult {
+  companies: AnalysisResult[];
+  comparisonSummary: string;
+  winner: {
+    ticker: string;
+    reason: string;
+  };
+}
