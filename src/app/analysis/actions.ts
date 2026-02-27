@@ -1,10 +1,11 @@
 "use server";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { AnalysisResult, ComparisonResult } from "@/lib/types";
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || "");
 
-export async function analyzeBusiness(ticker: string) {
+export async function analyzeBusiness(ticker: string): Promise<{ success: boolean; data?: AnalysisResult; error?: string }> {
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     // Return mock data if no API key is provided
     return {
@@ -57,5 +58,76 @@ export async function analyzeBusiness(ticker: string) {
   } catch (error) {
     console.error("AI Analysis Error:", error);
     return { success: false, error: "Failed to analyze business. Please try again later." };
+  }
+}
+
+export async function compareBusinesses(tickers: string[]): Promise<{ success: boolean; data?: ComparisonResult; error?: string }> {
+  if (!tickers || tickers.length < 2) {
+    return { success: false, error: "At least two tickers are required for comparison." };
+  }
+
+  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    // Return mock data if no API key is provided
+    return {
+      success: true,
+      data: {
+        companies: tickers.map(t => ({
+          ticker: t.toUpperCase(),
+          meaning: `Description for ${t.toUpperCase()}: Essential services/products.`,
+          moat: "Competitive advantage based on brand and scale.",
+          management: "Competent leadership team.",
+          isWonderful: true,
+          riskScore: 3,
+          summary: `${t.toUpperCase()} is a strong player in its industry.`
+        })),
+        comparisonSummary: "All companies show strong Rule No. 1 characteristics, but one stands out due to its superior moat.",
+        winner: {
+          ticker: tickers[0].toUpperCase(),
+          reason: "Higher predictability and stronger competitive advantage."
+        }
+      }
+    };
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+
+    const prompt = `
+      Compare the following company tickers based on Phil Town's "Rule No. 1" investment principles: ${tickers.join(", ")}.
+
+      Provide your analysis in JSON format with the following keys:
+      - companies: An array of analysis objects for each ticker. Each object must have:
+        - ticker: The stock ticker.
+        - meaning: A brief description of whether the business is easy to understand.
+        - moat: Analysis of the company's competitive advantage.
+        - management: Evaluation of the leadership.
+        - isWonderful: Boolean indicating if it qualifies as a "Wonderful Business".
+        - riskScore: A number from 1 to 10.
+        - summary: A brief summary of the business quality.
+      - comparisonSummary: A high-level comparison of the businesses.
+      - winner: An object with:
+        - ticker: The ticker of the superior business for a long-term investment.
+        - reason: A concise explanation of why it is the winner.
+
+      Return ONLY the JSON object.
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    const jsonStart = text.indexOf('{');
+    const jsonEnd = text.lastIndexOf('}');
+
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      const jsonStr = text.substring(jsonStart, jsonEnd + 1);
+      const data = JSON.parse(jsonStr);
+      return { success: true, data };
+    } else {
+      throw new Error("Could not find JSON in AI response");
+    }
+  } catch (error) {
+    console.error("AI Comparison Error:", error);
+    return { success: false, error: "Failed to compare businesses. Please try again later." };
   }
 }

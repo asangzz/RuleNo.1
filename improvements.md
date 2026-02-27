@@ -53,7 +53,20 @@
     - Centralized shared types in `src/lib/types.ts`.
     - Improved accessibility and testing with `htmlFor` and `id` on form inputs.
 
+## [AI Intelligence & Comparisons] - 2024-05-27
+- **Multi-Company Comparison**:
+    - Implemented `compareBusinesses` server action using Gemini 1.5 Pro.
+    - Added side-by-side comparative analysis for Rule No. 1 criteria (Moat, Management, Meaning).
+    - AI identifying a "Rule No. 1 Winner" with specific reasoning.
+- **Enhanced Analysis UI**:
+    - Revamped Analysis page with a mode toggle (Single Deep-Dive vs. Company Comparison).
+    - Polished grid-based results UI matching LifeGrid design language.
+    - Integrated multi-ticker input fields (up to 4 companies).
+- **Type Safety**:
+    - Centralized `AnalysisResult` and `ComparisonResult` types.
+    - Added explicit return types to AI server actions.
+
 ### Next Steps:
-- Implement AI-driven comparison between multiple companies.
 - Add portfolio simulation based on MOS Buy/Sell targets.
 - Implement PDF export for business analysis reports.
+- Add "Management" track record fetching (CEO tenure, past performance).
