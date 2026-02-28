@@ -53,7 +53,18 @@
     - Centralized shared types in `src/lib/types.ts`.
     - Improved accessibility and testing with `htmlFor` and `id` on form inputs.
 
+## [AI Business Comparison] - 2024-05-27
+- **Multi-Ticker Comparison**:
+    - Implemented `compareBusinesses` server action to evaluate multiple stocks side-by-side using Gemini 1.5 Pro.
+    - Added structured `ComparisonResult` and updated `AnalysisResult` in centralized types.
+- **Enhanced Analysis UI**:
+    - Updated Analysis page to support comma-separated ticker inputs.
+    - Created a minimalist, side-by-side comparison grid matching the LifeGrid aesthetic.
+    - Implemented "Rule No. 1 Winner" highlighting to guide investment decisions.
+- **Verification & Quality**:
+    - Implemented `NEXT_PUBLIC_MOCK_AUTH` for visual verification in headless environments.
+    - Verified single and multi-ticker flows with Playwright screenshots.
+
 ### Next Steps:
-- Implement AI-driven comparison between multiple companies.
 - Add portfolio simulation based on MOS Buy/Sell targets.
 - Implement PDF export for business analysis reports.
