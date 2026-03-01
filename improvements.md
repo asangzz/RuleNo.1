@@ -53,7 +53,14 @@
     - Centralized shared types in `src/lib/types.ts`.
     - Improved accessibility and testing with `htmlFor` and `id` on form inputs.
 
+## [Advanced AI Features] - 2024-05-27
+- **AI Business Comparison**:
+    - Implemented `compareBusinesses` server action using Gemini 1.5 Pro for side-by-side analysis.
+    - Added a "Comparison Mode" to the Analysis page, allowing users to compare multiple tickers.
+    - Integrated logic to identify a "Rule No. 1 Winner" based on Moat, Management, and Meaning.
+    - Designed a side-by-side grid layout for comparison results, matching the LifeGrid aesthetic.
+
 ### Next Steps:
-- Implement AI-driven comparison between multiple companies.
 - Add portfolio simulation based on MOS Buy/Sell targets.
 - Implement PDF export for business analysis reports.
+- Integrate news sentiment analysis for watchlist stocks.
