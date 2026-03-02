@@ -19,6 +19,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_MOCK_AUTH === "true") {
+      const timer = setTimeout(() => {
+        setUser({
+          uid: "mock-user-123",
+          email: "jules@example.com",
+          displayName: "Jules Dev",
+        } as User);
+        setLoading(false);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
