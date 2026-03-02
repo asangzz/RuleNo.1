@@ -53,7 +53,17 @@
     - Centralized shared types in `src/lib/types.ts`.
     - Improved accessibility and testing with `htmlFor` and `id` on form inputs.
 
+## [Advanced AI Features] - 2024-05-27
+- **AI Business Comparison**:
+    - Implemented `compareBusinesses` server action to perform side-by-side Rule No. 1 evaluations.
+    - Updated Analysis page with a "Comparison Mode" supporting multiple tickers.
+    - Designed a responsive grid-based comparison UI matching the LifeGrid aesthetic and ensuring mobile accessibility.
+    - Added "Rule No. 1 Winner" logic to highlight the best investment candidate with AI-driven reasoning.
+- **Type Safety & Refactoring**:
+    - Migrated analysis-related types to `src/lib/types.ts` for better reusability.
+    - Improved error handling and type safety in AI server actions.
+
 ### Next Steps:
-- Implement AI-driven comparison between multiple companies.
 - Add portfolio simulation based on MOS Buy/Sell targets.
 - Implement PDF export for business analysis reports.
+- Add historical price charts to the Watchlist expanded view.
