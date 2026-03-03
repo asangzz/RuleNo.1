@@ -53,7 +53,18 @@
     - Centralized shared types in `src/lib/types.ts`.
     - Improved accessibility and testing with `htmlFor` and `id` on form inputs.
 
+## [AI Comparison & UI Enhancements] - 2024-05-27
+- **Multi-Ticker AI Comparison**:
+    - Implemented `compareBusinesses` server action to perform side-by-side qualitative analysis of multiple tickers using Gemini 1.5 Pro.
+    - Updated `AnalysisResult` and added `ComparisonResult` to standardized types.
+- **Advanced Analysis UI**:
+    - Redesigned the Analysis page with a responsive comparison grid and "Rule No. 1 Winner" highlight card.
+    - Added functionality to toggle between detailed single-business views and high-level comparisons.
+    - Improved UX with comma-separated multi-ticker input.
+- **Mock Auth Improvements**:
+    - Enhanced `AuthContext` to support a local mock authentication state via `NEXT_PUBLIC_MOCK_AUTH` for improved developer experience and automated verification.
+
 ### Next Steps:
-- Implement AI-driven comparison between multiple companies.
 - Add portfolio simulation based on MOS Buy/Sell targets.
 - Implement PDF export for business analysis reports.
+- Add "Management" scorecard based on CEO performance metrics.
