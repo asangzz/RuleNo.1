@@ -11,6 +11,7 @@ import {
 } from "@/lib/rule-one";
 import { cn } from "@/lib/utils";
 import { fetchStockInfo, fetchHistoricalData } from "./actions";
+import { addPortfolioItem } from "../portfolio/actions";
 import { WatchlistItem, UserSettings, HistoricalData, HistoricalPoint } from "@/lib/types";
 
 export default function WatchlistPage() {
@@ -24,6 +25,8 @@ export default function WatchlistPage() {
   const [fetchingInfo, setFetchingInfo] = useState(false);
   const [newTicker, setNewTicker] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [buyingItem, setBuyingItem] = useState<WatchlistItem | null>(null);
+  const [buyShares, setBuyShares] = useState(10);
   const [error, setError] = useState<string | null>(null);
 
   // Form states for adding a new ticker (simplified)
@@ -142,6 +145,66 @@ export default function WatchlistPage() {
 
   return (
     <div className="space-y-6">
+      {buyingItem && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95">
+            <h3 className="text-xl font-bold mb-2">Buy {buyingItem.ticker}</h3>
+            <p className="text-sm text-muted-foreground mb-6">Record a simulated purchase for your portfolio.</p>
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="buy-shares" className="text-xs font-medium uppercase text-muted-foreground">Number of Shares</label>
+                <input
+                  id="buy-shares"
+                  type="number"
+                  value={buyShares}
+                  onChange={(e) => setBuyShares(parseFloat(e.target.value))}
+                  className="w-full mt-1 bg-background border border-border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+              </div>
+              <div className="p-4 bg-muted/30 rounded-lg">
+                <div className="flex justify-between text-sm">
+                  <span>Price per Share</span>
+                  <span className="font-bold">${buyingItem.currentPrice.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm mt-2 pt-2 border-t border-border">
+                  <span>Total Cost</span>
+                  <span className="font-bold text-accent">${(buyShares * buyingItem.currentPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-8">
+              <button
+                onClick={() => setBuyingItem(null)}
+                className="flex-1 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium hover:bg-secondary/80 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (user && buyingItem) {
+                    await addPortfolioItem(user.uid, {
+                      ticker: buyingItem.ticker,
+                      name: buyingItem.name,
+                      shares: buyShares,
+                      averagePrice: buyingItem.currentPrice,
+                      purchaseDate: new Date().toISOString().split('T')[0],
+                      createdAt: new Date().toISOString()
+                    });
+                    setBuyingItem(null);
+                    setBuyShares(10);
+                  }
+                }}
+                className="flex-1 py-2 bg-accent text-accent-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
+              >
+                Confirm Purchase
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="flex justify-between items-center">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Watchlist</h2>
@@ -307,6 +370,12 @@ export default function WatchlistPage() {
                       className="text-xs font-bold uppercase text-accent hover:underline"
                     >
                       {isExpanded ? "Hide Details" : "Show Details"}
+                    </button>
+                    <button
+                      onClick={() => setBuyingItem(item)}
+                      className="text-xs font-bold uppercase text-green-500 hover:underline ml-4"
+                    >
+                      Buy
                     </button>
                     <button
                       onClick={() => removeItem(item.id)}
