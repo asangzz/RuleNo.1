@@ -49,3 +49,13 @@ export interface ComparisonResult {
   winnerTicker: string;
   winnerReasoning: string;
 }
+
+export interface PortfolioItem {
+  id: string;
+  ticker: string;
+  name: string;
+  shares: number;
+  averagePrice: number;
+  purchaseDate: string;
+  createdAt: string;
+}

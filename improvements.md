@@ -64,7 +64,18 @@
 - **Mock Auth Improvements**:
     - Enhanced `AuthContext` to support a local mock authentication state via `NEXT_PUBLIC_MOCK_AUTH` for improved developer experience and automated verification.
 
+## [Portfolio Simulation] - 2024-05-28
+- **Portfolio Tracking**:
+    - Implemented a new Portfolio page for tracking simulated holdings.
+    - Added real-time performance tracking (Total Value, Gain/Loss) using `yahoo-finance2`.
+    - Created Firestore integration for persisting portfolio transactions (`users/{userId}/portfolio`).
+- **Seamless Integration**:
+    - Added a "Buy" button to Watchlist items, allowing users to quickly record simulated purchases at the current market price.
+    - Updated navigation to include easy access to the Portfolio.
+- **Enhanced UI/UX**:
+    - Designed a minimalist portfolio dashboard with summary cards and a detailed holdings table matching the LifeGrid aesthetic.
+
 ### Next Steps:
-- Add portfolio simulation based on MOS Buy/Sell targets.
 - Implement PDF export for business analysis reports.
 - Add "Management" scorecard based on CEO performance metrics.
+- Add dividend tracking and yield-on-cost metrics to the portfolio.
