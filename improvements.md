@@ -64,7 +64,21 @@
 - **Mock Auth Improvements**:
     - Enhanced `AuthContext` to support a local mock authentication state via `NEXT_PUBLIC_MOCK_AUTH` for improved developer experience and automated verification.
 
+## [Portfolio Tracking & Security] - 2024-05-28
+- **Portfolio Simulation**:
+    - Implemented simulated stock holdings tracking (`users/{userId}/portfolio`).
+    - Integrated real-time performance metrics (Market Value, Gain/Loss, Cost Basis).
+    - Added Rule No. 1 indicators to holdings by cross-referencing Watchlist data.
+- **Enhanced UI**:
+    - Developed a responsive portfolio dashboard with stat cards and an interactive table.
+    - Implemented expandable rows for detailed allocation and purchase insights, following the LifeGrid design language.
+- **Security Hardening**:
+    - Secured Portfolio server actions with server-side authentication using `firebase-admin` and `next/headers`.
+    - Protected against IDOR by removing client-supplied `userId` and verifying session tokens on the backend.
+- **Firebase Admin Integration**:
+    - Refined `firebase-admin` initialization to support both production credentials and development mock configurations.
+
 ### Next Steps:
-- Add portfolio simulation based on MOS Buy/Sell targets.
 - Implement PDF export for business analysis reports.
 - Add "Management" scorecard based on CEO performance metrics.
+- Add "Circle of Competence" tagging for better business categorization.
