@@ -49,3 +49,19 @@ export interface ComparisonResult {
   winnerTicker: string;
   winnerReasoning: string;
 }
+
+export interface PortfolioItem {
+  id: string;
+  ticker: string;
+  name: string;
+  shares: number;
+  averageCost: number;
+  purchaseDate: string;
+}
+
+export interface PortfolioData extends PortfolioItem {
+  currentPrice: number;
+  marketValue: number;
+  gainLoss: number;
+  gainLossPercentage: number;
+}
