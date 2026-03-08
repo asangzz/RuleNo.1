@@ -6,7 +6,7 @@
 - **UI/UX Foundation**:
     - Integrated 'Inter' font.
     - Configured global styles for a minimalist dark mode aesthetic (matching LifeGrid).
-    - Implemented `MainLayout` and `Navigation` components.
+    - Implemented `MainLayout` and `Navigation` component.
 - **Firebase Integration**: Set up Firebase SDK for client-side Auth and Firestore.
 - **Backend Preparation**: Included `firebase-admin` for future Cloud Functions/Server-side integration.
 
@@ -64,7 +64,21 @@
 - **Mock Auth Improvements**:
     - Enhanced `AuthContext` to support a local mock authentication state via `NEXT_PUBLIC_MOCK_AUTH` for improved developer experience and automated verification.
 
+## [Portfolio Simulation] - 2024-05-28
+- **Portfolio Management**:
+    - Implemented a new Portfolio page to track simulated stock purchases and sales.
+    - Added `PortfolioTransaction`, `PortfolioItem`, and `PortfolioData` interfaces for robust state management.
+- **Server-Side Integration**:
+    - Created `src/app/portfolio/actions.ts` to handle secure transaction recording and portfolio aggregation via Firestore.
+    - Optimized performance by fetching real-time market data for all portfolio holdings in parallel.
+- **Intelligent Tracking**:
+    - Integrated Portfolio with Watchlist data to automatically highlight "On Sale" status for existing holdings based on user-defined MOS targets.
+    - Implemented automatic calculation of average price, market value, and total gain/loss.
+- **UI/UX Consistency**:
+    - Designed a minimalist portfolio dashboard with summary cards and a detailed positions table matching the LifeGrid aesthetic.
+    - Added an interactive "Add Transaction" form with real-time price fetching.
+
 ### Next Steps:
-- Add portfolio simulation based on MOS Buy/Sell targets.
 - Implement PDF export for business analysis reports.
 - Add "Management" scorecard based on CEO performance metrics.
+- Add advanced portfolio analytics (diversification by sector, risk weighting).
