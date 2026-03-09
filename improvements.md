@@ -64,7 +64,20 @@
 - **Mock Auth Improvements**:
     - Enhanced `AuthContext` to support a local mock authentication state via `NEXT_PUBLIC_MOCK_AUTH` for improved developer experience and automated verification.
 
+## [Portfolio Tracking] - 2024-05-28
+- **Portfolio Management**:
+    - Implemented a new Portfolio page to track stock holdings and transactions (BUY/SELL).
+    - Added server actions in `src/app/portfolio/actions.ts` to manage portfolio data securely using Firebase Admin.
+    - Integrated Rule No. 1 logic to display Sticker Price and MOS Price indicators for each holding.
+- **Security & Multi-Tenancy**:
+    - Secured portfolio server actions by verifying user identity via server-side session cookies or mock auth context.
+    - Persisted transactions in user-specific Firestore subcollections.
+- **UI/UX Enhancements**:
+    - Designed a clean, minimalist portfolio dashboard with summary statistics (Total Value, Cost Basis, Gain/Loss).
+    - Added an interactive transaction form with real-time price fetching.
+    - Updated global navigation to include the Portfolio page.
+
 ### Next Steps:
-- Add portfolio simulation based on MOS Buy/Sell targets.
 - Implement PDF export for business analysis reports.
 - Add "Management" scorecard based on CEO performance metrics.
+- Add dividend tracking and yield-on-cost metrics to the portfolio.
