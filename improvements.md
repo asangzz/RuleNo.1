@@ -64,7 +64,14 @@
 - **Mock Auth Improvements**:
     - Enhanced `AuthContext` to support a local mock authentication state via `NEXT_PUBLIC_MOCK_AUTH` for improved developer experience and automated verification.
 
+- **Portfolio Tracking & Simulation**:
+    - Implemented `PortfolioTransaction`, `PortfolioItem`, and `PortfolioData` models.
+    - Created server actions for portfolio management with Firestore persistence.
+    - Developed a dedicated Portfolio page with real-time performance tracking and average cost basis calculation.
+    - Integrated Rule No. 1 analysis (Sticker/MOS) directly into the portfolio view to guide Buy/Sell decisions.
+    - Added portfolio value tracking to the Command Center dashboard.
+
 ### Next Steps:
-- Add portfolio simulation based on MOS Buy/Sell targets.
 - Implement PDF export for business analysis reports.
 - Add "Management" scorecard based on CEO performance metrics.
+- Add "Moat" durability check based on 10-year historical consistency trends.

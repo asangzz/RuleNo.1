@@ -3,6 +3,8 @@
  * Based on Phil Town's investment philosophy.
  */
 
+import { PortfolioTransaction, PortfolioItem, PortfolioData } from "./types";
+
 export interface RuleOneMetrics {
   ticker: string;
   currentPrice: number;
@@ -102,6 +104,77 @@ export function calculatePaybackTime(
   return {
     years: accumulatedEarnings >= currentPrice ? years : PAYBACK_TIME_LIMIT + 1,
     breakdown
+  };
+}
+
+/**
+ * Calculates portfolio performance based on transactions and current prices.
+ *
+ * @param transactions List of buy/sell transactions
+ * @param currentPrices Map of ticker to current market price
+ * @returns Aggregated portfolio data
+ */
+export function calculatePortfolioPerformance(
+  transactions: PortfolioTransaction[],
+  currentPrices: Record<string, number>
+): PortfolioData {
+  const itemsMap: Record<string, { shares: number; totalCost: number }> = {};
+
+  // Group by ticker and calculate net shares and cost basis
+  // For cost basis, we use the average cost method
+  // Sort transactions by date to ensure correct calculation
+  const sortedTransactions = [...transactions].sort((a, b) =>
+    new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  sortedTransactions.forEach((t) => {
+    if (!itemsMap[t.ticker]) {
+      itemsMap[t.ticker] = { shares: 0, totalCost: 0 };
+    }
+
+    if (t.type === 'BUY') {
+      itemsMap[t.ticker].shares += t.shares;
+      itemsMap[t.ticker].totalCost += t.shares * t.price;
+    } else {
+      // For SELL, we reduce shares and proportional cost
+      if (itemsMap[t.ticker].shares > 0) {
+        const avgCost = itemsMap[t.ticker].totalCost / itemsMap[t.ticker].shares;
+        itemsMap[t.ticker].shares -= t.shares;
+        itemsMap[t.ticker].totalCost -= t.shares * avgCost;
+      }
+    }
+  });
+
+  const items: PortfolioItem[] = Object.entries(itemsMap)
+    .filter(([, data]) => data.shares > 0)
+    .map(([ticker, data]) => {
+      const currentPrice = currentPrices[ticker] || 0;
+      const currentValue = data.shares * currentPrice;
+      const gainLoss = currentValue - data.totalCost;
+      const gainLossPercentage = (gainLoss / data.totalCost) * 100;
+
+      return {
+        ticker,
+        shares: data.shares,
+        costBasis: data.totalCost,
+        currentPrice,
+        currentValue,
+        gainLoss,
+        gainLossPercentage: isNaN(gainLossPercentage) ? 0 : gainLossPercentage,
+      };
+    });
+
+  const totalCostBasis = items.reduce((sum, item) => sum + item.costBasis, 0);
+  const totalValue = items.reduce((sum, item) => sum + item.currentValue, 0);
+  const totalGainLoss = totalValue - totalCostBasis;
+  const totalGainLossPercentage = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
+
+  return {
+    items,
+    totalValue,
+    totalCostBasis,
+    totalGainLoss,
+    totalGainLossPercentage: isFinite(totalGainLossPercentage) ? totalGainLossPercentage : 0,
   };
 }
 

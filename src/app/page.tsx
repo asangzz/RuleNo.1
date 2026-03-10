@@ -7,8 +7,10 @@ import { useAuth } from "@/context/AuthContext";
 import {
   calculateStickerPrice,
   calculateMOSPrice,
-  estimateFuturePE
+  estimateFuturePE,
+  calculatePortfolioPerformance
 } from "@/lib/rule-one";
+import { getPortfolio } from "@/app/portfolio/actions";
 import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
@@ -16,7 +18,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({
     wonderful: 0,
     watchlist: 0,
-    pending: 0
+    portfolioValue: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -46,10 +48,21 @@ export default function DashboardPage() {
         }
       });
 
+      // Fetch portfolio value
+      const portfolioResult = await getPortfolio();
+      let totalValue = 0;
+      if (portfolioResult.success && portfolioResult.data) {
+        const performance = calculatePortfolioPerformance(
+          portfolioResult.data.transactions,
+          portfolioResult.data.priceMap
+        );
+        totalValue = performance.totalValue;
+      }
+
       setStats({
         wonderful: wonderfulCount,
         watchlist: watchlistCount,
-        pending: 0 // Placeholder for now
+        portfolioValue: totalValue
       });
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -85,8 +98,10 @@ export default function DashboardPage() {
           <p className="text-4xl font-bold mt-2">{loading ? "..." : stats.watchlist}</p>
         </div>
         <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Pending Analysis</h3>
-          <p className="text-4xl font-bold mt-2">{stats.pending}</p>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Portfolio Value</h3>
+          <p className="text-4xl font-bold mt-2">
+            {loading ? "..." : `$${stats.portfolioValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+          </p>
         </div>
       </div>
 
