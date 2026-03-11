@@ -9,14 +9,17 @@ import {
   calculateMOSPrice,
   estimateFuturePE
 } from "@/lib/rule-one";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
+import { getPortfolio } from "./portfolio/actions";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState({
     wonderful: 0,
     watchlist: 0,
-    pending: 0
+    pending: 0,
+    portfolioValue: 0,
+    currency: "USD"
   });
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +35,10 @@ export default function DashboardPage() {
       const targetMOS = settingsSnap.exists() ? settingsSnap.data().targetMOS : 50;
 
       const q = query(collection(db, "users", user.uid, "watchlist"));
-      const querySnapshot = await getDocs(q);
+      const [querySnapshot, portfolio] = await Promise.all([
+        getDocs(q),
+        getPortfolio(user.uid)
+      ]);
       const watchlistCount = querySnapshot.docs.length;
 
       let wonderfulCount = 0;
@@ -49,7 +55,9 @@ export default function DashboardPage() {
       setStats({
         wonderful: wonderfulCount,
         watchlist: watchlistCount,
-        pending: 0 // Placeholder for now
+        pending: 0, // Placeholder for now
+        portfolioValue: portfolio.totalValue,
+        currency: settingsSnap.exists() ? settingsSnap.data().currency : "USD"
       });
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -72,7 +80,11 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">Welcome back. Your investment journey is on track.</p>
       </header>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Portfolio Value</h3>
+          <p className="text-4xl font-bold mt-2">{loading ? "..." : formatCurrency(stats.portfolioValue, stats.currency)}</p>
+        </div>
         <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Wonderful Businesses</h3>
           <div className="flex items-baseline gap-2 mt-2">

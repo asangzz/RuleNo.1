@@ -1,3 +1,5 @@
+import { PortfolioTransaction, PortfolioItem, PortfolioData } from './types';
+
 /**
  * Rule No. 1 Investment Calculations
  * Based on Phil Town's investment philosophy.
@@ -116,4 +118,75 @@ export function analyzeWonderfulBusiness(
   hasManagement: boolean
 ): boolean {
   return currentPrice <= mosPrice && hasMoat && hasManagement;
+}
+
+/**
+ * Calculates portfolio performance based on transactions and current prices.
+ *
+ * @param transactions List of buy/sell transactions
+ * @param currentPrices Map of ticker to current price
+ * @returns Portfolio data summary
+ */
+export function calculatePortfolioPerformance(
+  transactions: PortfolioTransaction[],
+  currentPrices: Record<string, number>
+): PortfolioData {
+  const itemsMap: Record<string, { shares: number; totalCost: number }> = {};
+
+  // Sort transactions by date
+  const sortedTransactions = [...transactions].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  sortedTransactions.forEach(tx => {
+    if (!itemsMap[tx.ticker]) {
+      itemsMap[tx.ticker] = { shares: 0, totalCost: 0 };
+    }
+
+    if (tx.type === 'BUY') {
+      itemsMap[tx.ticker].shares += tx.shares;
+      itemsMap[tx.ticker].totalCost += tx.shares * tx.price;
+    } else {
+      const currentShares = itemsMap[tx.ticker].shares;
+      if (currentShares > 0) {
+        const avgCost = itemsMap[tx.ticker].totalCost / currentShares;
+        itemsMap[tx.ticker].shares -= tx.shares;
+        itemsMap[tx.ticker].totalCost -= tx.shares * avgCost;
+      }
+    }
+  });
+
+  const items: PortfolioItem[] = Object.entries(itemsMap)
+    .filter(([, data]) => data.shares > 0)
+    .map(([ticker, data]) => {
+      const currentPrice = currentPrices[ticker] || 0;
+      const currentValue = data.shares * currentPrice;
+      const averageCost = data.shares > 0 ? data.totalCost / data.shares : 0;
+      const totalGain = currentValue - data.totalCost;
+      const totalGainPercentage = data.totalCost !== 0 ? (totalGain / data.totalCost) * 100 : 0;
+
+      return {
+        ticker,
+        shares: data.shares,
+        averageCost,
+        totalCost: data.totalCost,
+        currentPrice,
+        currentValue,
+        totalGain,
+        totalGainPercentage: isFinite(totalGainPercentage) ? totalGainPercentage : 0
+      };
+    });
+
+  const totalValue = items.reduce((sum, item) => sum + item.currentValue, 0);
+  const totalCost = items.reduce((sum, item) => sum + item.totalCost, 0);
+  const totalGain = totalValue - totalCost;
+  const totalGainPercentage = (totalGain / totalCost) * 100;
+
+  return {
+    items,
+    totalValue,
+    totalCost,
+    totalGain,
+    totalGainPercentage: isFinite(totalGainPercentage) ? totalGainPercentage : 0
+  };
 }

@@ -34,6 +34,11 @@ const Navigation = () => {
             </Link>
           </li>
           <li>
+            <Link href="/portfolio" className="block p-2 rounded hover:bg-slate-800 transition-colors">
+              Portfolio
+            </Link>
+          </li>
+          <li>
             <Link href="/analysis" className="block p-2 rounded hover:bg-slate-800 transition-colors">
               Analysis
             </Link>
