@@ -64,7 +64,20 @@
 - **Mock Auth Improvements**:
     - Enhanced `AuthContext` to support a local mock authentication state via `NEXT_PUBLIC_MOCK_AUTH` for improved developer experience and automated verification.
 
+## [Portfolio Simulation & Performance Tracking] - 2024-05-28
+- **Portfolio Management**:
+    - Created a new Portfolio page with transaction tracking (BUY/SELL).
+    - Implemented average cost basis performance calculation in `src/lib/rule-one.ts`.
+- **Rule No. 1 Integration**:
+    - Cross-referenced portfolio holdings with watchlist data to show real-time MOS and Sticker prices.
+    - Added "Strong Buy" and "Overpriced" indicators based on Rule No. 1 signals.
+- **Dashboard Integration**:
+    - Updated the Command Center with "Portfolio Value" and "Total Gain" metrics.
+- **Infrastructure**:
+    - Added portfolio server actions with multi-tenancy support using Firebase session cookies.
+    - Standardized portfolio-related types in `src/lib/types.ts`.
+
 ### Next Steps:
-- Add portfolio simulation based on MOS Buy/Sell targets.
 - Implement PDF export for business analysis reports.
 - Add "Management" scorecard based on CEO performance metrics.
+- Add dividend tracking and yield-on-cost metrics to the portfolio.

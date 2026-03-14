@@ -7,16 +7,20 @@ import { useAuth } from "@/context/AuthContext";
 import {
   calculateStickerPrice,
   calculateMOSPrice,
-  estimateFuturePE
+  estimateFuturePE,
+  calculatePortfolioPerformance
 } from "@/lib/rule-one";
 import { cn } from "@/lib/utils";
+import { getPortfolio } from "./portfolio/actions";
+import { WatchlistItem } from "@/lib/types";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState({
     wonderful: 0,
     watchlist: 0,
-    pending: 0
+    portfolioValue: 0,
+    portfolioGain: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -35,9 +39,11 @@ export default function DashboardPage() {
       const querySnapshot = await getDocs(q);
       const watchlistCount = querySnapshot.docs.length;
 
+      const watchlistData: Record<string, WatchlistItem> = {};
       let wonderfulCount = 0;
       querySnapshot.docs.forEach(doc => {
-        const data = doc.data();
+        const data = doc.data() as WatchlistItem;
+        watchlistData[data.ticker.toUpperCase()] = data;
         const futurePE = estimateFuturePE(data.growthRate, data.historicalHighPE);
         const stickerPrice = calculateStickerPrice(data.eps, data.growthRate, futurePE);
         const mosPrice = calculateMOSPrice(stickerPrice, targetMOS);
@@ -46,10 +52,27 @@ export default function DashboardPage() {
         }
       });
 
+      // Fetch portfolio stats
+      const portfolioResult = await getPortfolio();
+      let portfolioValue = 0;
+      let portfolioGain = 0;
+
+      if (portfolioResult.success && portfolioResult.transactions) {
+        const performance = calculatePortfolioPerformance(
+          portfolioResult.transactions,
+          portfolioResult.prices || {},
+          watchlistData,
+          targetMOS
+        );
+        portfolioValue = performance.totalValue;
+        portfolioGain = performance.totalGain;
+      }
+
       setStats({
         wonderful: wonderfulCount,
         watchlist: watchlistCount,
-        pending: 0 // Placeholder for now
+        portfolioValue,
+        portfolioGain
       });
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -72,7 +95,7 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">Welcome back. Your investment journey is on track.</p>
       </header>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Wonderful Businesses</h3>
           <div className="flex items-baseline gap-2 mt-2">
@@ -85,8 +108,14 @@ export default function DashboardPage() {
           <p className="text-4xl font-bold mt-2">{loading ? "..." : stats.watchlist}</p>
         </div>
         <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Pending Analysis</h3>
-          <p className="text-4xl font-bold mt-2">{stats.pending}</p>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Portfolio Value</h3>
+          <p className="text-4xl font-bold mt-2">{loading ? "..." : `$${stats.portfolioValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}</p>
+        </div>
+        <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Total Gain</h3>
+          <p className={cn("text-4xl font-bold mt-2", stats.portfolioGain >= 0 ? "text-green-500" : "text-red-500")}>
+            {loading ? "..." : `${stats.portfolioGain >= 0 ? "+" : ""}$${Math.abs(stats.portfolioGain).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+          </p>
         </div>
       </div>
 
