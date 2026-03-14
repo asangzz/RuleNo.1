@@ -3,6 +3,8 @@
  * Based on Phil Town's investment philosophy.
  */
 
+import { PortfolioTransaction, PortfolioData, PortfolioItem, WatchlistItem } from "./types";
+
 export interface RuleOneMetrics {
   ticker: string;
   currentPrice: number;
@@ -116,4 +118,77 @@ export function analyzeWonderfulBusiness(
   hasManagement: boolean
 ): boolean {
   return currentPrice <= mosPrice && hasMoat && hasManagement;
+}
+
+/**
+ * Calculates portfolio performance based on transactions and current prices.
+ */
+export function calculatePortfolioPerformance(
+  transactions: PortfolioTransaction[],
+  currentPrices: Record<string, { currentPrice: number; name: string }>,
+  watchlist: Record<string, WatchlistItem>,
+  targetMOS: number = 50
+): PortfolioData {
+  const holdings: Record<string, { shares: number; totalCost: number }> = {};
+
+  // Group by ticker and calculate average cost
+  transactions.forEach((t) => {
+    if (!holdings[t.ticker]) {
+      holdings[t.ticker] = { shares: 0, totalCost: 0 };
+    }
+    if (t.type === 'BUY') {
+      holdings[t.ticker].shares += t.shares;
+      holdings[t.ticker].totalCost += t.shares * t.price;
+    } else {
+      const avgCost = holdings[t.ticker].totalCost / holdings[t.ticker].shares;
+      holdings[t.ticker].shares -= t.shares;
+      holdings[t.ticker].totalCost -= t.shares * avgCost;
+    }
+  });
+
+  const items: PortfolioItem[] = Object.entries(holdings)
+    .filter(([_, data]) => data.shares > 0)
+    .map(([ticker, data]) => {
+      const currentData = currentPrices[ticker];
+      const watchlistItem = watchlist[ticker];
+      const currentPrice = currentData?.currentPrice || 0;
+
+      let stickerPrice: number | undefined;
+      let mosPrice: number | undefined;
+
+      if (watchlistItem) {
+        const futurePE = estimateFuturePE(watchlistItem.growthRate, watchlistItem.historicalHighPE);
+        stickerPrice = calculateStickerPrice(watchlistItem.eps, watchlistItem.growthRate, futurePE);
+        mosPrice = calculateMOSPrice(stickerPrice, targetMOS);
+      }
+
+      const totalValue = data.shares * currentPrice;
+      const totalGain = totalValue - data.totalCost;
+      const totalGainPercentage = data.totalCost > 0 ? (totalGain / data.totalCost) * 100 : 0;
+
+      return {
+        ticker,
+        name: currentData?.name || ticker,
+        shares: data.shares,
+        averageCost: data.totalCost / data.shares,
+        currentPrice,
+        totalValue,
+        totalGain,
+        totalGainPercentage,
+        stickerPrice,
+        mosPrice
+      };
+    });
+
+  const totalValue = items.reduce((sum, item) => sum + item.totalValue, 0);
+  const totalCost = Object.values(holdings).reduce((sum, data) => sum + (data.shares > 0 ? data.totalCost : 0), 0);
+  const totalGain = totalValue - totalCost;
+  const totalGainPercentage = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
+
+  return {
+    items: items.sort((a, b) => b.totalValue - a.totalValue),
+    totalValue,
+    totalGain,
+    totalGainPercentage
+  };
 }
