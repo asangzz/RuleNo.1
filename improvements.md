@@ -64,7 +64,19 @@
 - **Mock Auth Improvements**:
     - Enhanced `AuthContext` to support a local mock authentication state via `NEXT_PUBLIC_MOCK_AUTH` for improved developer experience and automated verification.
 
+## [Portfolio Management] - 2024-05-28
+- **Portfolio Tracking**:
+    - Implemented `PortfolioPage` with a minimalist, grid-based UI for tracking simulated holdings.
+    - Created `getPortfolio`, `addTransaction`, and `deleteTransaction` Server Actions.
+- **Rule No. 1 Integration**:
+    - Integrated real-time Rule No. 1 signals (MOS/Sticker Price) into the portfolio holdings table.
+    - Automates 'Strong Buy' or 'Overpriced' indicators by cross-referencing user watchlist data.
+- **Performance Calculation**:
+    - Implemented average cost basis method for calculating gains and losses across multiple buy/sell transactions.
+- **Multi-Tenancy & Security**:
+    - Secured portfolio data under `users/{userId}/portfolio` Firestore subcollections.
+
 ### Next Steps:
-- Add portfolio simulation based on MOS Buy/Sell targets.
 - Implement PDF export for business analysis reports.
 - Add "Management" scorecard based on CEO performance metrics.
+- Add Dividend tracking and Yield-on-Cost metrics to Portfolio.
