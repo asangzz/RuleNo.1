@@ -64,7 +64,20 @@
 - **Mock Auth Improvements**:
     - Enhanced `AuthContext` to support a local mock authentication state via `NEXT_PUBLIC_MOCK_AUTH` for improved developer experience and automated verification.
 
+## [Portfolio Simulation] - 2024-05-28
+- **Portfolio Tracking**:
+    - Implemented a new Portfolio page to track simulated holdings and ROI.
+    - Created `PortfolioItem` and `PortfolioTransaction` types for standardized data handling.
+- **Transaction Simulation**:
+    - Added "Buy" functionality directly from the Watchlist to simulate purchases.
+    - Implemented average cost basis calculation in `src/lib/rule-one.ts`.
+- **Dashboard Integration**:
+    - Added a "Portfolio Value" card to the main Command Center for real-time wealth tracking.
+- **Backend Logic**:
+    - Developed server actions for managing portfolio transactions in Firestore.
+    - Centralized user identification with `getUserId` utility.
+
 ### Next Steps:
-- Add portfolio simulation based on MOS Buy/Sell targets.
+- Implement SELL transactions in the Portfolio UI.
 - Implement PDF export for business analysis reports.
 - Add "Management" scorecard based on CEO performance metrics.
