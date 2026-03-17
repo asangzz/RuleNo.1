@@ -10,13 +10,15 @@ import {
   estimateFuturePE
 } from "@/lib/rule-one";
 import { cn } from "@/lib/utils";
+import { getPortfolio } from "./portfolio/actions";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState({
     wonderful: 0,
     watchlist: 0,
-    pending: 0
+    pending: 0,
+    portfolioValue: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -25,6 +27,19 @@ export default function DashboardPage() {
       setLoading(false);
       return;
     }
+
+    if (process.env.NEXT_PUBLIC_MOCK_AUTH === 'true') {
+      const portfolioRes = await getPortfolio();
+      setStats({
+        wonderful: 1,
+        watchlist: 3,
+        pending: 0,
+        portfolioValue: portfolioRes.success && portfolioRes.data ? portfolioRes.data.totalValue : 0
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
       // Fetch user settings
       const settingsRef = doc(db, "users", user.uid, "settings", "profile");
@@ -46,10 +61,15 @@ export default function DashboardPage() {
         }
       });
 
+      // Fetch portfolio value
+      const portfolioRes = await getPortfolio();
+      const portfolioValue = portfolioRes.success && portfolioRes.data ? portfolioRes.data.totalValue : 0;
+
       setStats({
         wonderful: wonderfulCount,
         watchlist: watchlistCount,
-        pending: 0 // Placeholder for now
+        pending: 0, // Placeholder for now
+        portfolioValue
       });
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -72,7 +92,11 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">Welcome back. Your investment journey is on track.</p>
       </header>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Portfolio Value</h3>
+          <p className="text-4xl font-bold mt-2">{loading ? "..." : `$${stats.portfolioValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}</p>
+        </div>
         <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Wonderful Businesses</h3>
           <div className="flex items-baseline gap-2 mt-2">

@@ -11,6 +11,7 @@ import {
 } from "@/lib/rule-one";
 import { cn } from "@/lib/utils";
 import { fetchStockInfo, fetchHistoricalData } from "./actions";
+import { addTransaction } from "../portfolio/actions";
 import { WatchlistItem, UserSettings, HistoricalData, HistoricalPoint } from "@/lib/types";
 
 export default function WatchlistPage() {
@@ -24,6 +25,8 @@ export default function WatchlistPage() {
   const [fetchingInfo, setFetchingInfo] = useState(false);
   const [newTicker, setNewTicker] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [isBuying, setIsBuying] = useState<string | null>(null);
+  const [buyAmount, setBuyAmount] = useState(10);
   const [error, setError] = useState<string | null>(null);
 
   // Form states for adding a new ticker (simplified)
@@ -137,6 +140,28 @@ export default function WatchlistPage() {
       } finally {
         setLoadingHistory(prev => ({ ...prev, [item.id]: false }));
       }
+    }
+  };
+
+  const handleBuy = async (item: WatchlistItem) => {
+    try {
+      const result = await addTransaction({
+        ticker: item.ticker,
+        type: 'BUY',
+        shares: buyAmount,
+        price: item.currentPrice,
+        date: new Date().toISOString()
+      });
+
+      if (result.success) {
+        setIsBuying(null);
+        alert(`Successfully bought ${buyAmount} shares of ${item.ticker}`);
+      } else {
+        alert(result.error || "Failed to buy stock");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("An unexpected error occurred");
     }
   };
 
@@ -303,6 +328,12 @@ export default function WatchlistPage() {
                   </div>
                   <div className="flex items-center justify-end gap-2">
                     <button
+                      onClick={() => setIsBuying(item.id)}
+                      className="px-3 py-1 bg-green-500/10 text-green-500 rounded text-[10px] font-bold uppercase hover:bg-green-500/20 transition-colors mr-2"
+                    >
+                      Buy
+                    </button>
+                    <button
                       onClick={() => toggleExpand(item)}
                       className="text-xs font-bold uppercase text-accent hover:underline"
                     >
@@ -317,6 +348,38 @@ export default function WatchlistPage() {
                   </div>
                 </div>
                 </div>
+
+                {isBuying === item.id && (
+                  <div className="p-6 pt-0 border-t border-border bg-green-500/5 animate-in slide-in-from-top-2 duration-200">
+                    <div className="mt-4 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <label htmlFor={`buy-shares-${item.id}`} className="text-xs font-bold uppercase text-muted-foreground">Shares to buy:</label>
+                        <input
+                          id={`buy-shares-${item.id}`}
+                          type="number"
+                          value={buyAmount}
+                          onChange={(e) => setBuyAmount(parseInt(e.target.value) || 0)}
+                          className="w-24 bg-background border border-border rounded p-1 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                        />
+                        <span className="text-sm font-medium">@ ${item.currentPrice.toFixed(2)} = <span className="font-bold text-accent">${(buyAmount * item.currentPrice).toFixed(2)}</span></span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setIsBuying(null)}
+                          className="px-4 py-2 text-xs font-bold uppercase text-muted-foreground hover:bg-muted rounded"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleBuy(item)}
+                          className="px-4 py-2 bg-green-500 text-white rounded text-xs font-bold uppercase hover:bg-green-600 shadow-sm"
+                        >
+                          Confirm Buy
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {isExpanded && (
                   <div className="p-6 pt-0 border-t border-border bg-muted/20 animate-in slide-in-from-top-2 duration-200">

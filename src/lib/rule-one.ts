@@ -117,3 +117,87 @@ export function analyzeWonderfulBusiness(
 ): boolean {
   return currentPrice <= mosPrice && hasMoat && hasManagement;
 }
+
+import { PortfolioTransaction, PortfolioData, PortfolioItem } from "./types";
+
+/**
+ * Calculates portfolio performance metrics from a list of transactions.
+ * Uses the average cost basis method.
+ *
+ * @param transactions List of portfolio transactions
+ * @param currentPrices Map of ticker to current price
+ * @returns Portfolio performance data
+ */
+export function calculatePortfolioPerformance(
+  transactions: PortfolioTransaction[],
+  currentPrices: Record<string, { price: number; name: string }>
+): PortfolioData {
+  const holdings: Record<string, { shares: number; totalCost: number }> = {};
+
+  // Sort transactions by date to ensure correct cost basis calculation
+  const sortedTransactions = [...transactions].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  for (const tx of sortedTransactions) {
+    if (!holdings[tx.ticker]) {
+      holdings[tx.ticker] = { shares: 0, totalCost: 0 };
+    }
+
+    if (tx.type === "BUY") {
+      holdings[tx.ticker].shares += tx.shares;
+      holdings[tx.ticker].totalCost += tx.shares * tx.price;
+    } else if (tx.type === "SELL") {
+      if (holdings[tx.ticker].shares > 0) {
+        const avgCost = holdings[tx.ticker].totalCost / holdings[tx.ticker].shares;
+        const sellShares = Math.min(tx.shares, holdings[tx.ticker].shares);
+        holdings[tx.ticker].shares -= sellShares;
+        holdings[tx.ticker].totalCost -= sellShares * avgCost;
+      }
+    }
+  }
+
+  const items: PortfolioItem[] = [];
+  let totalValue = 0;
+  let totalCostBasis = 0;
+
+  for (const ticker in holdings) {
+    const holding = holdings[ticker];
+    if (holding.shares <= 0) continue;
+
+    const currentData = currentPrices[ticker] || { price: 0, name: ticker };
+    const currentPrice = currentData.price;
+    const itemValue = holding.shares * currentPrice;
+    const itemCost = holding.totalCost;
+    const gainLoss = itemValue - itemCost;
+    const gainLossPercentage = itemCost > 0 ? (gainLoss / itemCost) * 100 : 0;
+
+    items.push({
+      ticker,
+      name: currentData.name,
+      shares: holding.shares,
+      averageCost: holding.totalCost / holding.shares,
+      currentPrice,
+      totalValue: itemValue,
+      gainLoss,
+      gainLossPercentage,
+    });
+
+    totalValue += itemValue;
+    totalCostBasis += itemCost;
+  }
+
+  const totalGainLoss = totalValue - totalCostBasis;
+  const totalGainLossPercentage =
+    totalCostBasis > 0 && isFinite(totalGainLoss / totalCostBasis)
+      ? (totalGainLoss / totalCostBasis) * 100
+      : 0;
+
+  return {
+    items,
+    totalValue,
+    totalCostBasis,
+    totalGainLoss,
+    totalGainLossPercentage,
+  };
+}

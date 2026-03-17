@@ -1,0 +1,80 @@
+
+> rule-one@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+
+✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+✓ Ready in 1064ms
+○ Compiling / ...
+ GET / 200 in 7.8s (compile: 7.0s, render: 747ms)
+ GET /watchlist 200 in 1394ms (compile: 1312ms, render: 83ms)
+ GET /portfolio 200 in 1040ms (compile: 911ms, render: 129ms)
+⨯ Error: Service account object must contain a string "project_id" property.
+    at module evaluation (src/lib/firebase-admin.ts:5:34)
+    at module evaluation (src/app/portfolio/actions.ts:3:1)
+    at module evaluation (.next-internal/server/app/portfolio/page/actions.js (server actions loader):1:1)
+    at module evaluation (.next/dev/server/chunks/ssr/[root-of-the-server]__ad350faf._.js:426:378)
+  3 | if (!admin.apps.length) {
+  4 |   admin.initializeApp({
+> 5 |     credential: admin.credential.cert({
+    |                                  ^
+  6 |       projectId: process.env.FIREBASE_PROJECT_ID,
+  7 |       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  8 |       privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'), {
+  errorInfo: [Object],
+  codePrefix: 'app',
+  digest: '4070167109'
+}
+ POST /portfolio 500 in 881ms (compile: 4ms, render: 877ms)
+⨯ Error: Service account object must contain a string "project_id" property.
+    at module evaluation (src/lib/firebase-admin.ts:5:34)
+    at module evaluation (src/app/portfolio/actions.ts:3:1)
+    at module evaluation (.next-internal/server/app/portfolio/page/actions.js (server actions loader):1:1)
+    at module evaluation (.next/dev/server/chunks/ssr/[root-of-the-server]__ad350faf._.js:426:378)
+  3 | if (!admin.apps.length) {
+  4 |   admin.initializeApp({
+> 5 |     credential: admin.credential.cert({
+    |                                  ^
+  6 |       projectId: process.env.FIREBASE_PROJECT_ID,
+  7 |       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  8 |       privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'), {
+  errorInfo: [Object],
+  codePrefix: 'app',
+  digest: '4070167109'
+}
+ POST /portfolio 500 in 459ms (compile: 5ms, render: 454ms)
+✓ Compiled in 67ms
+ GET / 200 in 560ms (compile: 219ms, render: 341ms)
+ GET /watchlist 200 in 557ms (compile: 193ms, render: 364ms)
+ GET /portfolio 200 in 508ms (compile: 189ms, render: 319ms)
+ POST /portfolio 200 in 1554ms (compile: 6ms, render: 1548ms)
+Error getting portfolio: Error: Could not load the default credentials. Browse to https://cloud.google.com/docs/authentication/getting-started for more information.
+    at getPortfolio (src/app/portfolio/actions.ts:63:64)
+  61 |   try {
+  62 |     const portfolioRef = adminDb.collection("users").doc(userId).collection("portfolio");
+> 63 |     const snapshot = await portfolioRef.orderBy("date", "asc").get();
+     |                                                                ^
+  64 |
+  65 |     const transactions = snapshot.docs.map(doc => ({
+  66 |       id: doc.id,
+✓ Compiled in 70ms
+ GET / 200 in 567ms (compile: 230ms, render: 337ms)
+ GET /watchlist 200 in 553ms (compile: 228ms, render: 324ms)
+ GET /portfolio 200 in 860ms (compile: 308ms, render: 552ms)
+ POST /portfolio 200 in 99ms (compile: 3ms, render: 96ms)
+ POST /portfolio 200 in 11ms (compile: 3ms, render: 8ms)
+ GET / 200 in 587ms (compile: 242ms, render: 345ms)
+ POST / 200 in 95ms (compile: 4ms, render: 91ms)
+ POST / 200 in 12ms (compile: 3ms, render: 9ms)
+ GET /watchlist 200 in 56ms (compile: 3ms, render: 53ms)
+ GET /portfolio 200 in 57ms (compile: 3ms, render: 54ms)
+ POST /portfolio 200 in 12ms (compile: 3ms, render: 9ms)
+ POST /portfolio 200 in 11ms (compile: 2ms, render: 9ms)
