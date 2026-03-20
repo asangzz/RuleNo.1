@@ -1,0 +1,14 @@
+
+> rule-one@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+
+✓ Starting...
+✓ Ready in 1211ms
+ GET / 200 in 1360ms (compile: 698ms, render: 662ms)
+ GET /portfolio 200 in 99ms (compile: 56ms, render: 43ms)
+ POST /portfolio 200 in 480ms (compile: 8ms, render: 472ms)
+ POST /portfolio 200 in 18ms (compile: 5ms, render: 13ms)

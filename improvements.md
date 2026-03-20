@@ -64,7 +64,17 @@
 - **Mock Auth Improvements**:
     - Enhanced `AuthContext` to support a local mock authentication state via `NEXT_PUBLIC_MOCK_AUTH` for improved developer experience and automated verification.
 
+- **Portfolio Tracking & Simulation**:
+    - Implemented `PortfolioTransaction`, `PortfolioItem`, and `PortfolioData` types.
+    - Created `getPortfolio` and `addTransaction` server actions with Firestore persistence.
+    - Developed a comprehensive Portfolio UI with real-time performance metrics (Total Value, Gain/Loss).
+    - Integrated "Rule No. 1" status indicators (Strong Buy, Hold, Overpriced) into holdings by cross-referencing watchlist data.
+    - Added an "Allocation Breakdown" visualization using minimalist progress bars.
+    - Integrated portfolio value into the main Command Center dashboard.
+- **System Stability**:
+    - Improved `firebase-admin` initialization to handle environments with missing service account credentials gracefully using a fallback to mock projects.
+
 ### Next Steps:
-- Add portfolio simulation based on MOS Buy/Sell targets.
 - Implement PDF export for business analysis reports.
 - Add "Management" scorecard based on CEO performance metrics.
+- Add "Cash" management to the portfolio for more accurate total return tracking.
