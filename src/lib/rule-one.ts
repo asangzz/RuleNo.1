@@ -1,3 +1,5 @@
+import { PortfolioTransaction, PortfolioData, PortfolioItem } from './types';
+
 /**
  * Rule No. 1 Investment Calculations
  * Based on Phil Town's investment philosophy.
@@ -116,4 +118,71 @@ export function analyzeWonderfulBusiness(
   hasManagement: boolean
 ): boolean {
   return currentPrice <= mosPrice && hasMoat && hasManagement;
+}
+
+/**
+ * Aggregates portfolio transactions into performance data.
+ */
+export function calculatePortfolioPerformance(
+  transactions: PortfolioTransaction[],
+  currentPrices: Record<string, { price: number; name: string }>
+): PortfolioData {
+  const itemsMap: Record<string, { shares: number; totalCost: number }> = {};
+
+  // Sort transactions by date to correctly calculate average cost
+  const sortedTransactions = [...transactions].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  for (const tx of sortedTransactions) {
+    if (!itemsMap[tx.ticker]) {
+      itemsMap[tx.ticker] = { shares: 0, totalCost: 0 };
+    }
+
+    if (tx.type === 'BUY') {
+      itemsMap[tx.ticker].shares += tx.shares;
+      itemsMap[tx.ticker].totalCost += tx.shares * tx.price;
+    } else {
+      // For SELL, we reduce shares and reduce cost proportionally (simple average cost)
+      if (itemsMap[tx.ticker].shares > 0) {
+        const avgCost = itemsMap[tx.ticker].totalCost / itemsMap[tx.ticker].shares;
+        itemsMap[tx.ticker].shares -= tx.shares;
+        itemsMap[tx.ticker].totalCost -= tx.shares * avgCost;
+      }
+    }
+  }
+
+  const items: PortfolioItem[] = Object.entries(itemsMap)
+    .filter(([, data]) => data.shares > 0)
+    .map(([ticker, data]) => {
+      const currentInfo = currentPrices[ticker] || { price: 0, name: ticker };
+      const totalValue = data.shares * currentInfo.price;
+      const gainLoss = totalValue - data.totalCost;
+      const gainLossPercentage = data.totalCost > 0 ? (gainLoss / data.totalCost) * 100 : 0;
+
+      return {
+        ticker,
+        name: currentInfo.name,
+        shares: data.shares,
+        averageCost: data.totalCost / data.shares,
+        currentPrice: currentInfo.price,
+        totalValue,
+        totalCost: data.totalCost,
+        gainLoss,
+        gainLossPercentage,
+      };
+    });
+
+  const totalValue = items.reduce((sum, item) => sum + item.totalValue, 0);
+  const totalCost = items.reduce((sum, item) => sum + item.totalCost, 0);
+  const totalGainLoss = totalValue - totalCost;
+  const totalGainLossPercentage = totalCost > 0 ? (totalGainLoss / totalCost) * 100 : 0;
+
+  return {
+    items,
+    totalValue,
+    totalCost,
+    totalGainLoss,
+    totalGainLossPercentage,
+  };
 }
