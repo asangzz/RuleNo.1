@@ -4,16 +4,27 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 const Navigation = () => {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleSignOut = async () => {
     await signOut(auth);
     router.push('/login');
   };
+
+  const navLinks = [
+    { name: 'Dashboard', href: '/' },
+    { name: 'Portfolio', href: '/portfolio' },
+    { name: 'Watchlist', href: '/watchlist' },
+    { name: 'Analysis', href: '/analysis' },
+    { name: 'Payback Time', href: '/payback-time' },
+    { name: 'Settings', href: '/settings' },
+  ];
 
   return (
     <nav className="flex flex-col w-64 h-screen bg-card border-r border-border p-4">
@@ -23,31 +34,21 @@ const Navigation = () => {
 
       <div className="flex-1">
         <ul className="space-y-2">
-          <li>
-            <Link href="/" className="block p-2 rounded hover:bg-slate-800 transition-colors">
-              Dashboard
-            </Link>
-          </li>
-          <li>
-            <Link href="/watchlist" className="block p-2 rounded hover:bg-slate-800 transition-colors">
-              Watchlist
-            </Link>
-          </li>
-          <li>
-            <Link href="/analysis" className="block p-2 rounded hover:bg-slate-800 transition-colors">
-              Analysis
-            </Link>
-          </li>
-          <li>
-            <Link href="/payback-time" className="block p-2 rounded hover:bg-slate-800 transition-colors">
-              Payback Time
-            </Link>
-          </li>
-          <li>
-            <Link href="/settings" className="block p-2 rounded hover:bg-slate-800 transition-colors">
-              Settings
-            </Link>
-          </li>
+          {navLinks.map((link) => (
+            <li key={link.href}>
+              <Link
+                href={link.href}
+                className={cn(
+                  "block p-2 rounded transition-colors text-sm font-medium",
+                  pathname === link.href
+                    ? "bg-accent text-accent-foreground"
+                    : "hover:bg-slate-800 text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {link.name}
+              </Link>
+            </li>
+          ))}
         </ul>
       </div>
 

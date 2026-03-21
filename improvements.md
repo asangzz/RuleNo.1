@@ -64,7 +64,21 @@
 - **Mock Auth Improvements**:
     - Enhanced `AuthContext` to support a local mock authentication state via `NEXT_PUBLIC_MOCK_AUTH` for improved developer experience and automated verification.
 
+## [Portfolio Simulation] - 2024-05-28
+- **Portfolio Tracking**:
+    - Implemented simulation of buy/sell transactions stored in Firestore (`users/{userId}/portfolio`).
+    - Created `calculatePortfolioPerformance` utility to aggregate holdings, average cost, and market value.
+- **Rule No. 1 Signals**:
+    - Integrated portfolio holdings with watchlist data to provide 'Strong Buy' or 'Overpriced' signals based on MOS and Sticker prices.
+- **Portfolio Dashboard**:
+    - Developed a comprehensive Portfolio page with summary statistics and dual views (Holdings vs. Transactions).
+    - Updated Dashboard 'Command Center' with live Portfolio Value and Performance metrics.
+- **UX/UI Improvements**:
+    - Added minimalist StatCards and allocation visualizations.
+    - Enhanced Navigation with active link styling and a new Portfolio section.
+    - Ensured strict adherence to LifeGrid design system.
+
 ### Next Steps:
-- Add portfolio simulation based on MOS Buy/Sell targets.
 - Implement PDF export for business analysis reports.
 - Add "Management" scorecard based on CEO performance metrics.
+- Implement price alerts based on MOS targets.

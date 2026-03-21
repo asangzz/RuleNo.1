@@ -7,16 +7,19 @@ import { useAuth } from "@/context/AuthContext";
 import {
   calculateStickerPrice,
   calculateMOSPrice,
-  estimateFuturePE
+  estimateFuturePE,
+  calculatePortfolioPerformance
 } from "@/lib/rule-one";
 import { cn } from "@/lib/utils";
+import { getPortfolio } from "./portfolio/actions";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState({
     wonderful: 0,
     watchlist: 0,
-    pending: 0
+    portfolioValue: 0,
+    portfolioGain: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -26,11 +29,12 @@ export default function DashboardPage() {
       return;
     }
     try {
-      // Fetch user settings
+      // 1. Fetch user settings
       const settingsRef = doc(db, "users", user.uid, "settings", "profile");
       const settingsSnap = await getDoc(settingsRef);
       const targetMOS = settingsSnap.exists() ? settingsSnap.data().targetMOS : 50;
 
+      // 2. Fetch watchlist stats
       const q = query(collection(db, "users", user.uid, "watchlist"));
       const querySnapshot = await getDocs(q);
       const watchlistCount = querySnapshot.docs.length;
@@ -46,10 +50,25 @@ export default function DashboardPage() {
         }
       });
 
+      // 3. Fetch portfolio stats
+      const portfolioResult = await getPortfolio(user.uid);
+      let portfolioValue = 0;
+      let portfolioGain = 0;
+
+      if (portfolioResult.success && portfolioResult.data) {
+        const performance = calculatePortfolioPerformance(
+          portfolioResult.data.transactions,
+          portfolioResult.data.currentPrices
+        );
+        portfolioValue = performance.totalValue;
+        portfolioGain = performance.totalGainLossPercentage;
+      }
+
       setStats({
         wonderful: wonderfulCount,
         watchlist: watchlistCount,
-        pending: 0 // Placeholder for now
+        portfolioValue,
+        portfolioGain
       });
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -66,13 +85,27 @@ export default function DashboardPage() {
   const heatmapData = Array.from({ length: 52 }, () => Math.random());
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-700">
       <header>
         <h2 className="text-3xl font-bold tracking-tight text-foreground">Command Center</h2>
         <p className="text-muted-foreground">Welcome back. Your investment journey is on track.</p>
       </header>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Portfolio Value</h3>
+          <div className="flex items-baseline gap-2 mt-2">
+            <p className="text-2xl font-bold">{loading ? "..." : `$${stats.portfolioValue.toLocaleString()}`}</p>
+            {stats.portfolioValue > 0 && (
+              <span className={cn(
+                "text-xs font-bold",
+                stats.portfolioGain >= 0 ? "text-green-500" : "text-red-500"
+              )}>
+                {stats.portfolioGain >= 0 ? "↑" : "↓"} {Math.abs(stats.portfolioGain).toFixed(1)}%
+              </span>
+            )}
+          </div>
+        </div>
         <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Wonderful Businesses</h3>
           <div className="flex items-baseline gap-2 mt-2">
@@ -85,8 +118,8 @@ export default function DashboardPage() {
           <p className="text-4xl font-bold mt-2">{loading ? "..." : stats.watchlist}</p>
         </div>
         <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Pending Analysis</h3>
-          <p className="text-4xl font-bold mt-2">{stats.pending}</p>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Rule No. 1 Score</h3>
+          <p className="text-4xl font-bold mt-2">85</p>
         </div>
       </div>
 
