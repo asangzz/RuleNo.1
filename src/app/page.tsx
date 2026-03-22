@@ -10,13 +10,14 @@ import {
   estimateFuturePE
 } from "@/lib/rule-one";
 import { cn } from "@/lib/utils";
+import { getPortfolio } from "./portfolio/actions";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState({
     wonderful: 0,
     watchlist: 0,
-    pending: 0
+    portfolioValue: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -46,10 +47,13 @@ export default function DashboardPage() {
         }
       });
 
+      // Fetch portfolio value
+      const portfolioData = await getPortfolio();
+
       setStats({
         wonderful: wonderfulCount,
         watchlist: watchlistCount,
-        pending: 0 // Placeholder for now
+        portfolioValue: portfolioData.totalValue
       });
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -85,8 +89,10 @@ export default function DashboardPage() {
           <p className="text-4xl font-bold mt-2">{loading ? "..." : stats.watchlist}</p>
         </div>
         <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Pending Analysis</h3>
-          <p className="text-4xl font-bold mt-2">{stats.pending}</p>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Portfolio Value</h3>
+          <p className="text-4xl font-bold mt-2">
+            {loading ? "..." : `$${stats.portfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          </p>
         </div>
       </div>
 
