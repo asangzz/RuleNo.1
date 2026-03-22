@@ -64,7 +64,21 @@
 - **Mock Auth Improvements**:
     - Enhanced `AuthContext` to support a local mock authentication state via `NEXT_PUBLIC_MOCK_AUTH` for improved developer experience and automated verification.
 
+## [Portfolio Simulator] - 2024-05-28
+- **Simulated Portfolio Tracking**:
+    - Created a new Portfolio page (`src/app/portfolio/page.tsx`) to track simulated holdings and performance.
+    - Implemented `addTransaction` and `deleteTransaction` server actions with Firestore persistence.
+    - Developed `getPortfolio` logic to aggregate transactions and calculate performance metrics (Value, Gain/Loss, Allocation).
+- **Dashboard Integration**:
+    - Updated the Command Center dashboard to display real-time total portfolio value.
+    - Added "Portfolio" to the main navigation sidebar.
+- **Robust Backend & Mocking**:
+    - Refactored `src/lib/firebase-admin.ts` for safer initialization, preventing crashes when environment variables are missing.
+    - Enhanced server actions to support `NEXT_PUBLIC_MOCK_AUTH` for seamless UI development and automated verification.
+- **UI/UX Consistency**:
+    - Maintained LifeGrid aesthetic with minimalist cards, grids, and dark mode styling.
+
 ### Next Steps:
-- Add portfolio simulation based on MOS Buy/Sell targets.
 - Implement PDF export for business analysis reports.
 - Add "Management" scorecard based on CEO performance metrics.
+- Add "Price Alerts" for tickers in the watchlist approaching MOS.
