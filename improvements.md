@@ -78,7 +78,19 @@
 - **UI/UX Consistency**:
     - Maintained LifeGrid aesthetic with minimalist cards, grids, and dark mode styling.
 
+## [Management & Alerts] - 2024-05-29
+- **Management Scorecard**:
+    - Enhanced `AnalysisResult` type with a numerical `managementScore` (1-10).
+    - Updated AI Analysis server actions to request and parse management scores based on Rule No. 1 criteria.
+    - Implemented a minimalist, grid-based visual scorecard in the Analysis UI matching the LifeGrid aesthetic.
+- **Dynamic Price Alerts**:
+    - Integrated real-time "Price Alerts" on the Command Center dashboard.
+    - Automatically identifies "Buy Opportunities" by filtering watchlist items where the current price is at or below the calculated Margin of Safety (MOS).
+- **Report Export Optimization**:
+    - Added comprehensive `@media print` styles to `globals.css`.
+    - Optimized the AI Analysis report for PDF export by hiding navigation elements and ensuring high-contrast, professional layout for physical or digital filing.
+
 ### Next Steps:
-- Implement PDF export for business analysis reports.
-- Add "Management" scorecard based on CEO performance metrics.
-- Add "Price Alerts" for tickers in the watchlist approaching MOS.
+- Implement "Meaning" checklist to help users verify their personal understanding of a business.
+- Add multi-currency support for portfolio tracking.
+- Create an automated "10-Year Growth" chart for key financial metrics.

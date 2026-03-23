@@ -28,3 +28,34 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+@media print {
+  nav, .no-print {
+    display: none !important;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .bg-card {
+    border: 1px solid #e2e8f0 !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .text-muted-foreground {
+    color: #475569 !important;
+  }
+
+  .text-accent {
+    color: #2563eb !important;
+  }
+}

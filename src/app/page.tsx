@@ -19,6 +19,7 @@ export default function DashboardPage() {
     watchlist: 0,
     portfolioValue: 0
   });
+  const [alerts, setAlerts] = useState<{ ticker: string; currentPrice: number; mosPrice: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
@@ -37,6 +38,8 @@ export default function DashboardPage() {
       const watchlistCount = querySnapshot.docs.length;
 
       let wonderfulCount = 0;
+      const priceAlerts: { ticker: string; currentPrice: number; mosPrice: number }[] = [];
+
       querySnapshot.docs.forEach(doc => {
         const data = doc.data();
         const futurePE = estimateFuturePE(data.growthRate, data.historicalHighPE);
@@ -44,6 +47,11 @@ export default function DashboardPage() {
         const mosPrice = calculateMOSPrice(stickerPrice, targetMOS);
         if (data.currentPrice <= mosPrice) {
           wonderfulCount++;
+          priceAlerts.push({
+            ticker: data.ticker,
+            currentPrice: data.currentPrice,
+            mosPrice: mosPrice
+          });
         }
       });
 
@@ -55,6 +63,7 @@ export default function DashboardPage() {
         watchlist: watchlistCount,
         portfolioValue: portfolioData.totalValue
       });
+      setAlerts(priceAlerts);
     } catch (error) {
       console.error("Error fetching stats:", error);
     } finally {
@@ -131,6 +140,26 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
+        {alerts.length > 0 && (
+          <div className="p-6 bg-card border border-green-500/20 rounded-2xl md:col-span-2">
+            <h3 className="text-sm font-bold mb-4 uppercase tracking-wider text-green-500">Price Alerts — Buy Opportunities</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {alerts.map((alert) => (
+                <div key={alert.ticker} className="flex items-center justify-between p-3 bg-green-500/5 border border-green-500/10 rounded-xl">
+                  <div>
+                    <span className="text-lg font-black">{alert.ticker}</span>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">At or Below MOS</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-green-500">${alert.currentPrice.toFixed(2)}</p>
+                    <p className="text-[10px] text-muted-foreground italic">MOS: ${alert.mosPrice.toFixed(2)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="p-6 bg-card border border-border rounded-2xl">
           <h3 className="text-sm font-bold mb-4 uppercase tracking-wider text-muted-foreground">Recent Activity</h3>
           <div className="space-y-4">
