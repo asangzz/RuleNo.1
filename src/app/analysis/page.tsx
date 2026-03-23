@@ -110,7 +110,25 @@ export default function AnalysisPage() {
                 <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Management</h3>
                 <span className="text-xs px-2 py-1 bg-purple-500/10 text-purple-500 rounded-full font-bold">LEADERSHIP</span>
               </div>
-              <p className="text-sm leading-relaxed">{singleResult.management}</p>
+              <p className="text-sm leading-relaxed mb-4">{singleResult.management}</p>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <span>Management Score</span>
+                  <span>{singleResult.managementScore}/10</span>
+                </div>
+                <div className="grid grid-cols-10 gap-1">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        "h-1.5 rounded-sm",
+                        i < singleResult.managementScore ? "bg-purple-500" : "bg-slate-800"
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="p-6 bg-card border border-border rounded-2xl flex flex-col justify-center items-center text-center space-y-2">

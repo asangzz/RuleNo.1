@@ -20,7 +20,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     // Check if mock auth is enabled
-    if (process.env.NEXT_PUBLIC_MOCK_AUTH === 'true') {
+    const isMockAuth = process.env.NEXT_PUBLIC_MOCK_AUTH === 'true' ||
+                       (typeof window !== 'undefined' && localStorage.getItem('NEXT_PUBLIC_MOCK_AUTH') === 'true');
+
+    if (isMockAuth) {
       console.log("Using Mock Auth");
       // Simulate a small delay for "loading" state
       const timer = setTimeout(() => {

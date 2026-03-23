@@ -39,6 +39,7 @@ export interface AnalysisResult {
   meaning: string;
   moat: string;
   management: string;
+  managementScore: number;
   isWonderful: boolean;
   riskScore: number;
   summary: string;
