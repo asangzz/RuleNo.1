@@ -78,7 +78,19 @@
 - **UI/UX Consistency**:
     - Maintained LifeGrid aesthetic with minimalist cards, grids, and dark mode styling.
 
+## [Report Optimization & Analysis Enhancements] - 2024-05-29
+- **Price Alerts on Dashboard**:
+    - Implemented a "Price Alerts" section on the main dashboard that automatically identifies and displays "Buy Opportunities" from the user's watchlist (where Price <= MOS Price).
+    - Uses a responsive grid-based layout that matches the LifeGrid minimalist tracking aesthetic.
+- **Management Scorecard**:
+    - Enhanced the AI Business Analysis with a numerical "Management Scorecard" (1-10).
+    - Updated `AnalysisResult` type and AI prompts to generate these scores.
+    - Developed a 10-segment grid visualization for leadership quality in both single-business and comparison views.
+- **PDF Export Optimization**:
+    - Optimized the print layout for analysis reports via `@media print` CSS rules.
+    - Implemented high-fidelity report printing by hiding UI navigation, resetting colors for clarity, and maintaining professional information hierarchy in exported PDFs.
+
 ### Next Steps:
-- Implement PDF export for business analysis reports.
-- Add "Management" scorecard based on CEO performance metrics.
-- Add "Price Alerts" for tickers in the watchlist approaching MOS.
+- Implement custom Moat categorization (Brand, Secret, Toll Bridge, Switching, Price) with dedicated icons.
+- Add "Historical Growth Consistency" badges for companies with 10+ years of uninterrupted EPS growth.
+- Integrate a simple "Tax Liability" calculator for the Portfolio simulator based on short-term vs. long-term holding periods.
