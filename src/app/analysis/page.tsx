@@ -110,7 +110,25 @@ export default function AnalysisPage() {
                 <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Management</h3>
                 <span className="text-xs px-2 py-1 bg-purple-500/10 text-purple-500 rounded-full font-bold">LEADERSHIP</span>
               </div>
-              <p className="text-sm leading-relaxed">{singleResult.management}</p>
+              <p className="text-sm leading-relaxed mb-6">{singleResult.management}</p>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-end">
+                  <span className="text-[10px] font-bold uppercase text-muted-foreground">Leadership Score</span>
+                  <span className="text-lg font-black text-purple-500">{singleResult.managementScore}/10</span>
+                </div>
+                <div className="grid grid-cols-10 gap-1">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        "h-1.5 rounded-full transition-all",
+                        i < singleResult.managementScore ? "bg-purple-500" : "bg-slate-800"
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="p-6 bg-card border border-border rounded-2xl flex flex-col justify-center items-center text-center space-y-2">
@@ -179,8 +197,22 @@ export default function AnalysisPage() {
                     <p className="text-xs line-clamp-3 leading-relaxed text-muted-foreground">{item.moat}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-1">Management</p>
-                    <p className="text-xs line-clamp-3 leading-relaxed text-muted-foreground">{item.management}</p>
+                    <div className="flex justify-between items-center mb-1">
+                      <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Management</p>
+                      <span className="text-[10px] font-black text-purple-500">{item.managementScore}/10</span>
+                    </div>
+                    <div className="grid grid-cols-10 gap-0.5 mb-2">
+                      {Array.from({ length: 10 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className={cn(
+                            "h-1 rounded-full",
+                            i < item.managementScore ? "bg-purple-500" : "bg-slate-800"
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-xs line-clamp-2 leading-relaxed text-muted-foreground">{item.management}</p>
                   </div>
                 </div>
 
