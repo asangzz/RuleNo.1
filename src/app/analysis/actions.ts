@@ -17,6 +17,7 @@ export async function analyzeBusiness(ticker: string) {
         management: "Experienced leadership team with a clear focus on long-term value creation.",
         isWonderful: true,
         riskScore: 3, // 1-10
+        managementScore: 8, // 1-10
         summary: "A wonderful business with consistent performance and a solid competitive position."
       } as AnalysisResult
     };
@@ -35,6 +36,7 @@ export async function analyzeBusiness(ticker: string) {
       - management: Evaluation of the leadership and their integrity/talent.
       - isWonderful: Boolean indicating if it qualifies as a "Wonderful Business".
       - riskScore: A number from 1 to 10 (1 being lowest risk).
+      - managementScore: A number from 1 to 10 (10 being the best).
       - summary: A final summary of the business quality.
 
       Return ONLY the JSON object.
@@ -73,6 +75,7 @@ export async function compareBusinesses(tickers: string[]) {
       management: "Proven leadership team with long-term strategic vision.",
       isWonderful: index === 0,
       riskScore: index === 0 ? 2 : 4,
+      managementScore: index === 0 ? 9 : 7,
       summary: `${ticker} represents a ${index === 0 ? "solid" : "fair"} investment opportunity under Rule No. 1.`
     }));
 
@@ -102,6 +105,7 @@ export async function compareBusinesses(tickers: string[]) {
             "management": "Management analysis...",
             "isWonderful": true/false,
             "riskScore": 1-10,
+            "managementScore": 1-10,
             "summary": "Brief summary..."
           },
           ...

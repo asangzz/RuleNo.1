@@ -41,6 +41,7 @@ export interface AnalysisResult {
   management: string;
   isWonderful: boolean;
   riskScore: number;
+  managementScore: number;
   summary: string;
 }
 
