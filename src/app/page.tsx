@@ -19,6 +19,7 @@ export default function DashboardPage() {
     watchlist: 0,
     portfolioValue: 0
   });
+  const [priceAlerts, setPriceAlerts] = useState<{ticker: string, price: number, mos: number}[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
@@ -37,13 +38,20 @@ export default function DashboardPage() {
       const watchlistCount = querySnapshot.docs.length;
 
       let wonderfulCount = 0;
+      const alerts: {ticker: string, price: number, mos: number}[] = [];
+
       querySnapshot.docs.forEach(doc => {
         const data = doc.data();
-        const futurePE = estimateFuturePE(data.growthRate, data.historicalHighPE);
+        const futurePE = estimateFuturePE(data.growthRate, data.historicalHighPE || 20);
         const stickerPrice = calculateStickerPrice(data.eps, data.growthRate, futurePE);
         const mosPrice = calculateMOSPrice(stickerPrice, targetMOS);
         if (data.currentPrice <= mosPrice) {
           wonderfulCount++;
+          alerts.push({
+            ticker: data.ticker,
+            price: data.currentPrice,
+            mos: mosPrice
+          });
         }
       });
 
@@ -55,6 +63,7 @@ export default function DashboardPage() {
         watchlist: watchlistCount,
         portfolioValue: portfolioData.totalValue
       });
+      setPriceAlerts(alerts);
     } catch (error) {
       console.error("Error fetching stats:", error);
     } finally {
@@ -95,6 +104,23 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
+
+      {priceAlerts.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {priceAlerts.map((alert) => (
+            <div key={alert.ticker} className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex flex-col justify-between">
+              <div className="flex justify-between items-start">
+                <h4 className="font-bold text-green-500">{alert.ticker}</h4>
+                <span className="text-[10px] font-black uppercase bg-green-500 text-green-950 px-2 py-0.5 rounded">BUY</span>
+              </div>
+              <div className="mt-2">
+                <p className="text-2xl font-black">${alert.price.toFixed(2)}</p>
+                <p className="text-[10px] text-muted-foreground uppercase font-bold">MOS: ${alert.mos.toFixed(2)}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="p-8 bg-card border border-border rounded-2xl">
         <div className="flex items-center justify-between mb-8">

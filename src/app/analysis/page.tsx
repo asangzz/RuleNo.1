@@ -55,7 +55,7 @@ export default function AnalysisPage() {
         <p className="text-muted-foreground">Rule No. 1 deep-dives and comparisons powered by Gemini 1.5 Pro.</p>
       </header>
 
-      <form onSubmit={handleAnalyze} className="max-w-2xl mx-auto flex gap-2">
+      <form onSubmit={handleAnalyze} className="max-w-2xl mx-auto flex gap-2 no-print">
         <input
           type="text"
           value={tickerInput}
@@ -113,12 +113,33 @@ export default function AnalysisPage() {
               <p className="text-sm leading-relaxed">{singleResult.management}</p>
             </div>
 
-            <div className="p-6 bg-card border border-border rounded-2xl flex flex-col justify-center items-center text-center space-y-2">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Wonderful Business Score</h3>
-              <div className="text-5xl font-black text-accent">
-                {singleResult.isWonderful ? "YES" : "NO"}
+            <div className="p-6 bg-card border border-border rounded-2xl flex flex-col justify-between space-y-4">
+              <div className="text-center">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Rule No. 1 Score</h3>
+                <div className="text-5xl font-black text-accent">
+                  {singleResult.isWonderful ? "YES" : "NO"}
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground">Risk Level: {singleResult.riskScore}/10</p>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">
+                  <span>Management Score</span>
+                  <span>{singleResult.managementScore}/10</span>
+                </div>
+                <div className="grid grid-cols-10 gap-1">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        "h-1.5 rounded-full transition-colors",
+                        i < singleResult.managementScore ? "bg-accent" : "bg-slate-800"
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-[10px] text-center text-muted-foreground uppercase font-bold tracking-widest">Risk Level: {singleResult.riskScore}/10</p>
             </div>
           </div>
 
@@ -129,7 +150,7 @@ export default function AnalysisPage() {
             </p>
           </div>
 
-          <div className="flex justify-center">
+          <div className="flex justify-center no-print">
             <button
               className="px-6 py-2 border border-border rounded-full text-xs font-bold hover:bg-slate-800 transition-colors"
               onClick={() => window.print()}
@@ -184,8 +205,26 @@ export default function AnalysisPage() {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <div className="flex justify-between text-[8px] font-bold uppercase tracking-tighter text-muted-foreground">
+                    <span>Management</span>
+                    <span>{item.managementScore}/10</span>
+                  </div>
+                  <div className="grid grid-cols-10 gap-0.5">
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className={cn(
+                          "h-1 rounded-full",
+                          i < item.managementScore ? "bg-accent" : "bg-slate-800"
+                        )}
+                      />
+                    ))}
+                  </div>
+                </div>
+
                 <div className="mt-auto pt-4 border-t border-border flex justify-between items-center">
-                  <p className="text-[10px] text-muted-foreground font-bold uppercase">Risk Score: {item.riskScore}/10</p>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase">Risk: {item.riskScore}/10</p>
                   <button
                     onClick={() => {
                       setSingleResult(item);
