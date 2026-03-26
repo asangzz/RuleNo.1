@@ -19,6 +19,7 @@ export default function DashboardPage() {
     watchlist: 0,
     portfolioValue: 0
   });
+  const [onSaleTickers, setOnSaleTickers] = useState<{ticker: string, price: number, mosPrice: number}[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
@@ -27,6 +28,21 @@ export default function DashboardPage() {
       return;
     }
     try {
+      if (process.env.NEXT_PUBLIC_MOCK_AUTH === 'true') {
+        // Mock stats
+        setStats({
+          wonderful: 2,
+          watchlist: 5,
+          portfolioValue: 1800.00
+        });
+        setOnSaleTickers([
+          { ticker: 'AAPL', price: 150.00, mosPrice: 160.00 },
+          { ticker: 'MSFT', price: 300.00, mosPrice: 310.00 }
+        ]);
+        setLoading(false);
+        return;
+      }
+
       // Fetch user settings
       const settingsRef = doc(db, "users", user.uid, "settings", "profile");
       const settingsSnap = await getDoc(settingsRef);
@@ -37,6 +53,8 @@ export default function DashboardPage() {
       const watchlistCount = querySnapshot.docs.length;
 
       let wonderfulCount = 0;
+      const onSale: {ticker: string, price: number, mosPrice: number}[] = [];
+
       querySnapshot.docs.forEach(doc => {
         const data = doc.data();
         const futurePE = estimateFuturePE(data.growthRate, data.historicalHighPE);
@@ -44,8 +62,15 @@ export default function DashboardPage() {
         const mosPrice = calculateMOSPrice(stickerPrice, targetMOS);
         if (data.currentPrice <= mosPrice) {
           wonderfulCount++;
+          onSale.push({
+            ticker: data.ticker,
+            price: data.currentPrice,
+            mosPrice: mosPrice
+          });
         }
       });
+
+      setOnSaleTickers(onSale);
 
       // Fetch portfolio value
       const portfolioData = await getPortfolio();
@@ -131,6 +156,29 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
+        {onSaleTickers.length > 0 && (
+          <div className="p-6 bg-card border border-green-500/20 rounded-2xl ring-1 ring-green-500/10">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-green-500">Price Alerts</h3>
+              <span className="text-[10px] font-black bg-green-500 text-green-950 px-2 py-0.5 rounded-full">BUY SIGNAL</span>
+            </div>
+            <div className="space-y-3">
+              {onSaleTickers.map((item) => (
+                <div key={item.ticker} className="flex items-center justify-between p-3 bg-green-500/5 rounded-xl border border-green-500/10">
+                  <div>
+                    <p className="font-black text-lg">{item.ticker}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Current: ${item.price.toFixed(2)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-bold text-green-500">MOS: ${item.mosPrice.toFixed(2)}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase">Under MOS</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="p-6 bg-card border border-border rounded-2xl">
           <h3 className="text-sm font-bold mb-4 uppercase tracking-wider text-muted-foreground">Recent Activity</h3>
           <div className="space-y-4">

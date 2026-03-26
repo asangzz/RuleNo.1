@@ -16,7 +16,7 @@ const Navigation = () => {
   };
 
   return (
-    <nav className="flex flex-col w-64 h-screen bg-card border-r border-border p-4">
+    <nav className="flex flex-col w-64 h-screen bg-card border-r border-border p-4 no-print">
       <div className="mb-8">
         <h1 className="text-xl font-bold tracking-tight text-accent">Rule No. 1</h1>
       </div>
