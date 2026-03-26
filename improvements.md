@@ -78,7 +78,20 @@
 - **UI/UX Consistency**:
     - Maintained LifeGrid aesthetic with minimalist cards, grids, and dark mode styling.
 
+## [Enhanced Analysis & Dashboard] - 2024-05-29
+- **PDF Export Optimization**:
+    - Added `@media print` CSS rules in `src/app/globals.css` to hide navigation and optimize report layout.
+    - Implemented `.no-print` classes across `src/components/Navigation.tsx` and `src/app/analysis/page.tsx` for professional-grade PDF reports.
+- **Management Scorecard**:
+    - Updated `AnalysisResult` and AI prompts in `src/app/analysis/actions.ts` to include a numerical `managementScore` (1-10).
+    - Visualized the score in `src/app/analysis/page.tsx` using a 10-segment grid matching the LifeGrid aesthetic.
+- **Price Alerts & Buy Signals**:
+    - Enhanced the Command Center dashboard (`src/app/page.tsx`) to identify "On Sale" tickers from the user's watchlist.
+    - Implemented a "Price Alerts" section that highlights buy opportunities when current prices fall below the Margin of Safety (MOS).
+- **Environment Stability**:
+    - Updated `src/lib/firebase.ts` with mock fallback values for environment variables to ensure `npm run build` succeeds in sandbox environments without real credentials.
+
 ### Next Steps:
-- Implement PDF export for business analysis reports.
-- Add "Management" scorecard based on CEO performance metrics.
-- Add "Price Alerts" for tickers in the watchlist approaching MOS.
+- Implement custom email notifications for price alerts.
+- Add "Economic Moat" visualization with detailed industry benchmarking.
+- Enhance portfolio with dividend tracking and yield-on-cost metrics.

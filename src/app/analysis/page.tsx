@@ -50,12 +50,12 @@ export default function AnalysisPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      <header className="text-center space-y-2">
+      <header className="text-center space-y-2 no-print">
         <h2 className="text-3xl font-bold tracking-tight">AI Business Analysis</h2>
         <p className="text-muted-foreground">Rule No. 1 deep-dives and comparisons powered by Gemini 1.5 Pro.</p>
       </header>
 
-      <form onSubmit={handleAnalyze} className="max-w-2xl mx-auto flex gap-2">
+      <form onSubmit={handleAnalyze} className="max-w-2xl mx-auto flex gap-2 no-print">
         <input
           type="text"
           value={tickerInput}
@@ -113,12 +113,33 @@ export default function AnalysisPage() {
               <p className="text-sm leading-relaxed">{singleResult.management}</p>
             </div>
 
-            <div className="p-6 bg-card border border-border rounded-2xl flex flex-col justify-center items-center text-center space-y-2">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Wonderful Business Score</h3>
-              <div className="text-5xl font-black text-accent">
-                {singleResult.isWonderful ? "YES" : "NO"}
+            <div className="p-6 bg-card border border-border rounded-2xl flex flex-col justify-center items-center text-center space-y-4">
+              <div className="space-y-1">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Wonderful Business</h3>
+                <div className="text-4xl font-black text-accent">
+                  {singleResult.isWonderful ? "YES" : "NO"}
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground">Risk Level: {singleResult.riskScore}/10</p>
+
+              <div className="w-full space-y-2 pt-2 border-t border-border">
+                <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  <span>Management Score</span>
+                  <span>{singleResult.managementScore}/10</span>
+                </div>
+                <div className="grid grid-cols-10 gap-1">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        "h-2 rounded-full",
+                        i < singleResult.managementScore ? "bg-purple-500" : "bg-slate-800"
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Risk Level: {singleResult.riskScore}/10</p>
             </div>
           </div>
 
@@ -129,7 +150,7 @@ export default function AnalysisPage() {
             </p>
           </div>
 
-          <div className="flex justify-center">
+          <div className="flex justify-center no-print">
             <button
               className="px-6 py-2 border border-border rounded-full text-xs font-bold hover:bg-slate-800 transition-colors"
               onClick={() => window.print()}
@@ -185,7 +206,10 @@ export default function AnalysisPage() {
                 </div>
 
                 <div className="mt-auto pt-4 border-t border-border flex justify-between items-center">
-                  <p className="text-[10px] text-muted-foreground font-bold uppercase">Risk Score: {item.riskScore}/10</p>
+                  <div className="flex flex-col gap-1">
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase">Mgmt Score: {item.managementScore}/10</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase">Risk Score: {item.riskScore}/10</p>
+                  </div>
                   <button
                     onClick={() => {
                       setSingleResult(item);
