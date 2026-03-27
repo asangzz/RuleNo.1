@@ -117,3 +117,43 @@ export function analyzeWonderfulBusiness(
 ): boolean {
   return currentPrice <= mosPrice && hasMoat && hasManagement;
 }
+
+/**
+ * Checks if a stock's current price is at or below its Margin of Safety (MOS) price.
+ *
+ * @param currentPrice The current market price of the stock
+ * @param mosPrice The calculated Margin of Safety price
+ * @returns Boolean indicating if the stock is a potential buy candidate
+ */
+export function isPriceAtMOS(currentPrice: number, mosPrice: number): boolean {
+  return currentPrice <= mosPrice;
+}
+
+/**
+ * Full Rule No. 1 calculation for a stock.
+ * Aggregates all key metrics into a single object.
+ */
+export function calculateRuleOneMetrics(
+  ticker: string,
+  currentPrice: number,
+  eps: number,
+  growthRate: number,
+  historicalHighPE?: number,
+  targetMOS: number = 50
+): RuleOneMetrics {
+  const futurePE = estimateFuturePE(growthRate, historicalHighPE);
+  const stickerPrice = calculateStickerPrice(eps, growthRate, futurePE);
+  const mosPrice = calculateMOSPrice(stickerPrice, targetMOS);
+  const isWonderful = isPriceAtMOS(currentPrice, mosPrice);
+
+  return {
+    ticker,
+    currentPrice,
+    eps,
+    growthRate,
+    peRatio: futurePE,
+    stickerPrice,
+    mosPrice,
+    isWonderful
+  };
+}

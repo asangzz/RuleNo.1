@@ -78,7 +78,17 @@
 - **UI/UX Consistency**:
     - Maintained LifeGrid aesthetic with minimalist cards, grids, and dark mode styling.
 
+## [Price Alerts & Dashboard Enhancements] - 2024-05-29
+- **Real-time Price Alerts**:
+    - Implemented a "Price Alerts" system on the Command Center dashboard.
+    - Automatically identifies stocks from the user's watchlist that are currently trading at or below their Margin of Safety (MOS) price.
+    - Provides a quick overview of "On Sale" tickers with their current price and MOS target.
+- **Rule No. 1 Logic Expansion**:
+    - Added `isPriceAtMOS` utility to `src/lib/rule-one.ts` for centralized buy-signal detection.
+    - Standardized `PriceAlert` type in `src/lib/types.ts`.
+- **UI Refinement**:
+    - Integrated the Price Alerts section into the Command Center using the minimalist LifeGrid design language.
+
 ### Next Steps:
 - Implement PDF export for business analysis reports.
 - Add "Management" scorecard based on CEO performance metrics.
-- Add "Price Alerts" for tickers in the watchlist approaching MOS.
