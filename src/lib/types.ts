@@ -50,6 +50,14 @@ export interface ComparisonResult {
   winnerReasoning: string;
 }
 
+export interface PriceAlert {
+  ticker: string;
+  name: string;
+  currentPrice: number;
+  mosPrice: number;
+  stickerPrice: number;
+}
+
 export type TransactionType = 'BUY' | 'SELL';
 
 export interface PortfolioTransaction {

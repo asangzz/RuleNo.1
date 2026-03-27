@@ -5,11 +5,10 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs, query, doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import {
-  calculateStickerPrice,
-  calculateMOSPrice,
-  estimateFuturePE
+  calculateRuleOneMetrics
 } from "@/lib/rule-one";
 import { cn } from "@/lib/utils";
+import { PriceAlert } from "@/lib/types";
 import { getPortfolio } from "./portfolio/actions";
 
 export default function DashboardPage() {
@@ -19,6 +18,7 @@ export default function DashboardPage() {
     watchlist: 0,
     portfolioValue: 0
   });
+  const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
@@ -37,13 +37,27 @@ export default function DashboardPage() {
       const watchlistCount = querySnapshot.docs.length;
 
       let wonderfulCount = 0;
+      const alerts: PriceAlert[] = [];
       querySnapshot.docs.forEach(doc => {
         const data = doc.data();
-        const futurePE = estimateFuturePE(data.growthRate, data.historicalHighPE);
-        const stickerPrice = calculateStickerPrice(data.eps, data.growthRate, futurePE);
-        const mosPrice = calculateMOSPrice(stickerPrice, targetMOS);
-        if (data.currentPrice <= mosPrice) {
+        const metrics = calculateRuleOneMetrics(
+          data.ticker,
+          data.currentPrice,
+          data.eps,
+          data.growthRate,
+          data.historicalHighPE,
+          targetMOS
+        );
+
+        if (metrics.isWonderful) {
           wonderfulCount++;
+          alerts.push({
+            ticker: metrics.ticker,
+            name: data.name,
+            currentPrice: metrics.currentPrice,
+            mosPrice: metrics.mosPrice,
+            stickerPrice: metrics.stickerPrice
+          });
         }
       });
 
@@ -55,6 +69,7 @@ export default function DashboardPage() {
         watchlist: watchlistCount,
         portfolioValue: portfolioData.totalValue
       });
+      setPriceAlerts(alerts);
     } catch (error) {
       console.error("Error fetching stats:", error);
     } finally {
@@ -131,6 +146,33 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
+        <div className="p-6 bg-card border border-border rounded-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Price Alerts</h3>
+            <span className="text-[10px] px-2 py-0.5 bg-green-500/10 text-green-500 rounded-full font-bold">ON SALE</span>
+          </div>
+          <div className="space-y-3">
+            {loading ? (
+              <p className="text-sm text-muted-foreground animate-pulse">Scanning market...</p>
+            ) : priceAlerts.length > 0 ? (
+              priceAlerts.map((alert) => (
+                <div key={alert.ticker} className="flex items-center justify-between p-3 bg-slate-900/50 border border-border/50 rounded-xl">
+                  <div>
+                    <p className="text-sm font-bold">{alert.ticker}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-tight">{alert.name}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-black text-green-500">${alert.currentPrice.toFixed(2)}</p>
+                    <p className="text-[10px] text-muted-foreground">MOS: ${alert.mosPrice.toFixed(2)}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground italic">No active price alerts. All watchlist items are above MOS.</p>
+            )}
+          </div>
+        </div>
+
         <div className="p-6 bg-card border border-border rounded-2xl">
           <h3 className="text-sm font-bold mb-4 uppercase tracking-wider text-muted-foreground">Recent Activity</h3>
           <div className="space-y-4">
