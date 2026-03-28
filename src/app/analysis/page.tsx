@@ -50,12 +50,12 @@ export default function AnalysisPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      <header className="text-center space-y-2">
+      <header className="text-center space-y-2 no-print">
         <h2 className="text-3xl font-bold tracking-tight">AI Business Analysis</h2>
         <p className="text-muted-foreground">Rule No. 1 deep-dives and comparisons powered by Gemini 1.5 Pro.</p>
       </header>
 
-      <form onSubmit={handleAnalyze} className="max-w-2xl mx-auto flex gap-2">
+      <form onSubmit={handleAnalyze} className="max-w-2xl mx-auto flex gap-2 no-print">
         <input
           type="text"
           value={tickerInput}
@@ -105,12 +105,30 @@ export default function AnalysisPage() {
               <p className="text-sm leading-relaxed">{singleResult.moat}</p>
             </div>
 
-            <div className="p-6 bg-card border border-border rounded-2xl">
+            <div className="p-6 bg-card border border-border rounded-2xl flex flex-col">
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Management</h3>
                 <span className="text-xs px-2 py-1 bg-purple-500/10 text-purple-500 rounded-full font-bold">LEADERSHIP</span>
               </div>
-              <p className="text-sm leading-relaxed">{singleResult.management}</p>
+              <p className="text-sm leading-relaxed mb-6">{singleResult.management}</p>
+
+              <div className="mt-auto space-y-2">
+                <div className="flex justify-between items-end">
+                  <p className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">Capital Allocation Score</p>
+                  <p className="text-lg font-black text-purple-500 leading-none">{singleResult.managementScore}/10</p>
+                </div>
+                <div className="grid grid-cols-10 gap-1">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        "h-1.5 rounded-full transition-colors",
+                        i < (singleResult?.managementScore || 0) ? "bg-purple-500" : "bg-slate-800"
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="p-6 bg-card border border-border rounded-2xl flex flex-col justify-center items-center text-center space-y-2">
@@ -129,7 +147,7 @@ export default function AnalysisPage() {
             </p>
           </div>
 
-          <div className="flex justify-center">
+          <div className="flex justify-center no-print">
             <button
               className="px-6 py-2 border border-border rounded-full text-xs font-bold hover:bg-slate-800 transition-colors"
               onClick={() => window.print()}

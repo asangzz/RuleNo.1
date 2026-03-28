@@ -78,7 +78,21 @@
 - **UI/UX Consistency**:
     - Maintained LifeGrid aesthetic with minimalist cards, grids, and dark mode styling.
 
+## [Advanced Analysis & Reporting] - 2024-05-29
+- **Numerical Management Scorecard**:
+    - Enhanced AI analysis prompts to generate a quantitative `managementScore` (1-10) based on capital allocation and integrity.
+    - Implemented a minimalist, 10-segment grid visualization for the management score in the Analysis page, matching the LifeGrid aesthetic.
+    - Updated `AnalysisResult` and AI server actions to support the new metric.
+- **Price Alerts & Buy Signals**:
+    - Implemented "Price Alerts" on the Command Center dashboard to automatically highlight watchlist items trading at or below their Margin of Safety (MOS).
+    - Designed clear "BUY SIGNAL" cards with real-time price vs. MOS comparisons.
+- **Optimized PDF Reporting**:
+    - Implemented `@media print` CSS rules in `globals.css` to enable high-fidelity PDF export for business analysis reports.
+    - Added a `no-print` utility to cleanly exclude navigation and interactive elements from generated reports.
+- **Robust Mock Environment**:
+    - Refactored Firebase initialization to provide a stable, crash-resistant mock state when API keys are missing, supporting both client and server-side development.
+
 ### Next Steps:
-- Implement PDF export for business analysis reports.
-- Add "Management" scorecard based on CEO performance metrics.
-- Add "Price Alerts" for tickers in the watchlist approaching MOS.
+- Implement automated technical analysis (moving averages, MACD) for buy/sell timing.
+- Add support for exporting portfolio performance reports.
+- Integrate news sentiment analysis for watchlist tickers.
