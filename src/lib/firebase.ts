@@ -1,6 +1,6 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getAuth, Auth } from "firebase/auth";
+import { getFirestore, Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -17,8 +17,24 @@ if (!firebaseConfig.apiKey) {
 }
 
 // Initialize Firebase
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const isMock = process.env.NEXT_PUBLIC_MOCK_AUTH === 'true';
+
+// When in mock mode without valid credentials, we provide dummy objects to prevent SDK crashes
+let app: FirebaseApp, auth: Auth, db: Firestore;
+
+if (isMock && !firebaseConfig.apiKey) {
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  app = { name: '[DEFAULT]', options: {}, automaticDataCollectionEnabled: false } as any;
+  auth = { onAuthStateChanged: () => () => {} } as any;
+  // Use a Proxy for db to prevent crashes when accessing collection/doc/etc.
+  db = new Proxy({}, {
+    get: () => () => ({})
+  }) as any;
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+} else {
+  app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+}
 
 export { app, auth, db };

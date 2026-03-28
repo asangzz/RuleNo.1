@@ -17,7 +17,8 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({
     wonderful: 0,
     watchlist: 0,
-    portfolioValue: 0
+    portfolioValue: 0,
+    priceAlerts: [] as { ticker: string; currentPrice: number; mosPrice: number }[]
   });
   const [loading, setLoading] = useState(true);
 
@@ -37,6 +38,8 @@ export default function DashboardPage() {
       const watchlistCount = querySnapshot.docs.length;
 
       let wonderfulCount = 0;
+      const priceAlerts: { ticker: string; currentPrice: number; mosPrice: number }[] = [];
+
       querySnapshot.docs.forEach(doc => {
         const data = doc.data();
         const futurePE = estimateFuturePE(data.growthRate, data.historicalHighPE);
@@ -44,6 +47,11 @@ export default function DashboardPage() {
         const mosPrice = calculateMOSPrice(stickerPrice, targetMOS);
         if (data.currentPrice <= mosPrice) {
           wonderfulCount++;
+          priceAlerts.push({
+            ticker: data.ticker,
+            currentPrice: data.currentPrice,
+            mosPrice: mosPrice
+          });
         }
       });
 
@@ -53,7 +61,8 @@ export default function DashboardPage() {
       setStats({
         wonderful: wonderfulCount,
         watchlist: watchlistCount,
-        portfolioValue: portfolioData.totalValue
+        portfolioValue: portfolioData.totalValue,
+        priceAlerts
       });
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -75,6 +84,23 @@ export default function DashboardPage() {
         <h2 className="text-3xl font-bold tracking-tight text-foreground">Command Center</h2>
         <p className="text-muted-foreground">Welcome back. Your investment journey is on track.</p>
       </header>
+
+      {stats.priceAlerts.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {stats.priceAlerts.map(alert => (
+            <div key={alert.ticker} className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl flex justify-between items-center animate-in fade-in slide-in-from-top-2 duration-300">
+              <div>
+                <p className="text-[10px] font-black text-green-500 uppercase tracking-widest">Price Alert</p>
+                <h4 className="text-xl font-black">{alert.ticker}</h4>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-bold text-green-500">BUY SIGNAL</p>
+                <p className="text-xs text-muted-foreground">${alert.currentPrice.toFixed(2)} ≤ ${alert.mosPrice.toFixed(2)} (MOS)</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
